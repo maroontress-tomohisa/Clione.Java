@@ -103,4 +103,29 @@ public interface LexicalParser extends AutoCloseable {
     static LexicalParser of(Reader reader, Collection<String> reservedWords) {
         return new DefaultLexicalParser(reader, reservedWords);
     }
+
+    /**
+        Returns a new preprocessor that processes macros.
+
+        <p>The instance considers {@link Keywords#C11} as reserved
+        keywords.</p>
+
+        @param reader The reader that provides the stream of the source file.
+        @return The new {@link LexicalParser} object with macro processing.
+     */
+    static LexicalParser preprocessorOf(Reader reader) {
+        return new Preprocessor(new DefaultLexicalParser(reader));
+    }
+
+    /**
+        Returns a new preprocessor that processes macros with the specified
+        reserved words.
+
+        @param reader The reader that provides the stream of the source file.
+        @param reservedWords The collection that contains reserved words.
+        @return The new {@link LexicalParser} object with macro processing.
+     */
+    static LexicalParser preprocessorOf(Reader reader, Collection<String> reservedWords) {
+        return new Preprocessor(new DefaultLexicalParser(reader, reservedWords));
+    }
 }
