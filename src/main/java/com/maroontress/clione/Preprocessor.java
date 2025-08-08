@@ -94,7 +94,7 @@ public final class Preprocessor implements LexicalParser {
         }
 
         var macroName = directiveTokens.get(nameIndex).getValue();
-        int bodyIndex = findFirstTokenAfter(nameIndex, directiveTokens);
+        int bodyIndex = findNextTokenAfter(nameIndex, directiveTokens);
         if (bodyIndex == -1) {
             macros.put(macroName, new ArrayList<>());
             return;
@@ -110,6 +110,19 @@ public final class Preprocessor implements LexicalParser {
         }
 
         macros.put(macroName, macroBody);
+    }
+
+    private int findNextTokenAfter(final int startIndex, final List<Token> tokens) {
+        int index = startIndex + 1;
+        while (index < tokens.size()
+                && tokens.get(index).getType() == TokenType.DELIMITER) {
+            index++;
+        }
+        if (index >= tokens.size()
+                || tokens.get(index).getType() == TokenType.DIRECTIVE_END) {
+            return -1;
+        }
+        return index;
     }
 
     private void handleUndef(final List<Token> directiveTokens) {
