@@ -19,7 +19,7 @@ import java.util.Optional;
 public final class Preprocessor implements LexicalParser {
 
     private final LexicalParser parser;
-    private final Map<String, List<Token>> macros = new HashMap<>();
+    private final Map<String, Macro> macros = new HashMap<>();
     private final LinkedList<Token> tokenQueue = new LinkedList<>();
 
     /**
@@ -61,8 +61,22 @@ public final class Preprocessor implements LexicalParser {
         if (token.getType() == TokenType.IDENTIFIER) {
             var name = token.getValue();
             if (macros.containsKey(name)) {
-                tokenQueue.addAll(macros.get(name));
-                return next();
+                var macro = macros.get(name);
+                if (macro.isFunctionLike()) {
+                    // It is a function-like macro.
+                    // We must look ahead for a '('.
+                    var openParen = lookAheadForParen();
+                    if (openParen.isPresent()) {
+                        var args = parseArguments();
+                        var substituted = substitute(macro, args);
+                        tokenQueue.addAll(substituted);
+                        return next();
+                    }
+                } else {
+                    // It is an object-like macro.
+                    tokenQueue.addAll(macro.body());
+                    return next();
+                }
             }
         }
 
@@ -71,6 +85,76 @@ public final class Preprocessor implements LexicalParser {
         }
 
         return Optional.of(token);
+    }
+
+    private List<Token> substitute(final Macro macro, final List<List<Token>> args) {
+        var params = macro.parameters();
+        if (params.size() != args.size()) {
+            // C99 standard says this is a constraint violation.
+            // We'll just skip substitution.
+            return List.of();
+        }
+        var mapping = new HashMap<String, List<Token>>();
+        for (int i = 0; i < params.size(); i++) {
+            mapping.put(params.get(i), args.get(i));
+        }
+
+        var result = new ArrayList<Token>();
+        for (var token : macro.body()) {
+            if (token.getType() == TokenType.IDENTIFIER && mapping.containsKey(token.getValue())) {
+                result.addAll(mapping.get(token.getValue()));
+            } else {
+                result.add(token);
+            }
+        }
+        return result;
+    }
+
+    private List<List<Token>> parseArguments() throws IOException {
+        var args = new ArrayList<List<Token>>();
+        var currentArg = new ArrayList<Token>();
+        var parenLevel = 1;
+
+        while (true) {
+            var nextToken = parser.next();
+            if (nextToken.isEmpty()) {
+                break; // Unexpected EOF
+            }
+            var token = nextToken.get();
+
+            if (token.getType() == TokenType.PUNCTUATOR && token.getValue().equals(")")) {
+                parenLevel--;
+                if (parenLevel == 0) {
+                    if (!args.isEmpty() || !currentArg.isEmpty()) {
+                        args.add(currentArg);
+                    }
+                    break;
+                }
+            } else if (token.getType() == TokenType.PUNCTUATOR && token.getValue().equals("(")) {
+                parenLevel++;
+            } else if (token.getType() == TokenType.PUNCTUATOR && token.getValue().equals(",") && parenLevel == 1) {
+                args.add(currentArg);
+                currentArg = new ArrayList<>();
+                continue;
+            }
+
+            currentArg.add(token);
+        }
+        return args;
+    }
+
+    private Optional<Token> lookAheadForParen() throws IOException {
+        var nextToken = parser.next();
+        if (nextToken.isEmpty()) {
+            return Optional.empty();
+        }
+        var token = nextToken.get();
+        if (token.getType() == TokenType.PUNCTUATOR && token.getValue().equals("(")) {
+            return Optional.of(token);
+        }
+        // This was not a function call, so put the token back.
+        tokenQueue.add(token);
+        return Optional.empty();
     }
 
     private void updateMacrosFromDirective(final Token token) {
@@ -94,22 +178,71 @@ public final class Preprocessor implements LexicalParser {
         }
 
         var macroName = directiveTokens.get(nameIndex).getValue();
-        int bodyIndex = findNextTokenAfter(nameIndex, directiveTokens);
-        if (bodyIndex == -1) {
-            macros.put(macroName, new ArrayList<>());
-            return;
+        var nameToken = directiveTokens.get(nameIndex);
+
+        // Check for function-like macro. There must be no space
+        // between the macro name and the '('.
+        var nextTokenIndex = nameIndex + 1;
+        if (nextTokenIndex < directiveTokens.size()) {
+            var nextToken = directiveTokens.get(nextTokenIndex);
+            if (nextToken.getType() == TokenType.PUNCTUATOR && nextToken.getValue().equals("(")) {
+                // Function-like macro
+                parseFunctionLikeMacro(directiveTokens, nameIndex);
+                return;
+            }
         }
 
+        // Object-like macro
+        int bodyIndex = findNextTokenAfter(nameIndex, directiveTokens);
+        List<Token> body;
+        if (bodyIndex == -1) {
+            body = new ArrayList<>();
+        } else {
+            body = getMacroBody(bodyIndex, directiveTokens);
+        }
+        macros.put(macroName, new Macro(macroName, false, List.of(), body));
+    }
+
+    private void parseFunctionLikeMacro(final List<Token> tokens, final int nameIndex) {
+        var macroName = tokens.get(nameIndex).getValue();
+        var parameters = new ArrayList<String>();
+        var currentIndex = nameIndex + 2; // After macro name and '('
+
+        // Parse parameters
+        while (currentIndex < tokens.size()) {
+            var token = tokens.get(currentIndex);
+            if (token.getType() == TokenType.PUNCTUATOR && token.getValue().equals(")")) {
+                break;
+            }
+            if (token.getType() == TokenType.IDENTIFIER) {
+                parameters.add(token.getValue());
+            }
+            // We ignore commas and other tokens between identifiers for simplicity.
+            currentIndex++;
+        }
+
+        // Find body
+        var bodyIndex = findNextTokenAfter(currentIndex, tokens);
+        List<Token> body;
+        if (bodyIndex == -1) {
+            body = new ArrayList<>();
+        } else {
+            body = getMacroBody(bodyIndex, tokens);
+        }
+
+        macros.put(macroName, new Macro(macroName, true, parameters, body));
+    }
+
+    private List<Token> getMacroBody(int bodyIndex, final List<Token> tokens) {
         var macroBody = new ArrayList<Token>();
-        for (int i = bodyIndex; i < directiveTokens.size(); i++) {
-            var token = directiveTokens.get(i);
+        for (int i = bodyIndex; i < tokens.size(); i++) {
+            var token = tokens.get(i);
             if (token.getType() == TokenType.DIRECTIVE_END) {
                 break;
             }
             macroBody.add(token);
         }
-
-        macros.put(macroName, macroBody);
+        return macroBody;
     }
 
     private int findNextTokenAfter(final int startIndex, final List<Token> tokens) {

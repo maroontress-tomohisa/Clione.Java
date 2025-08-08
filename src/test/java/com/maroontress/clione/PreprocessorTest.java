@@ -57,6 +57,110 @@ public final class PreprocessorTest {
         test(s, list);
     }
 
+    @Test
+    public void testFunctionLikeMacro() {
+        var s = "#define ADD(a,b) (a+b)\nint x = ADD(1,2);\n";
+
+        var defineDirective = pair("#", TokenType.DIRECTIVE, List.of(
+                pair("define", TokenType.DIRECTIVE_NAME),
+                pair(" ", TokenType.DELIMITER),
+                pair("ADD", TokenType.IDENTIFIER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("a", TokenType.IDENTIFIER),
+                pair(",", TokenType.PUNCTUATOR),
+                pair("b", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("a", TokenType.IDENTIFIER),
+                pair("+", TokenType.OPERATOR),
+                pair("b", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair("\n", TokenType.DIRECTIVE_END)
+        ));
+
+        var list = List.of(
+                defineDirective,
+                pair("int", TokenType.RESERVED),
+                pair(" ", TokenType.DELIMITER),
+                pair("x", TokenType.IDENTIFIER),
+                pair(" ", TokenType.DELIMITER),
+                pair("=", TokenType.OPERATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("1", TokenType.NUMBER),
+                pair("+", TokenType.OPERATOR),
+                pair("2", TokenType.NUMBER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(";", TokenType.PUNCTUATOR),
+                pair("\n", TokenType.DELIMITER)
+        );
+
+        test(s, list);
+    }
+
+    @Test
+    public void testFunctionLikeMacroNoArgs() {
+        var s = "#define F() 1\nint x = F();\n";
+
+        var defineDirective = pair("#", TokenType.DIRECTIVE, List.of(
+                pair("define", TokenType.DIRECTIVE_NAME),
+                pair(" ", TokenType.DELIMITER),
+                pair("F", TokenType.IDENTIFIER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("1", TokenType.NUMBER),
+                pair("\n", TokenType.DIRECTIVE_END)
+        ));
+
+        var list = List.of(
+                defineDirective,
+                pair("int", TokenType.RESERVED),
+                pair(" ", TokenType.DELIMITER),
+                pair("x", TokenType.IDENTIFIER),
+                pair(" ", TokenType.DELIMITER),
+                pair("=", TokenType.OPERATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("1", TokenType.NUMBER),
+                pair(";", TokenType.PUNCTUATOR),
+                pair("\n", TokenType.DELIMITER)
+        );
+
+        test(s, list);
+    }
+
+    @Test
+    public void testFunctionLikeMacroNotExpanded() {
+        var s = "#define F() 1\nint F = 2;\n";
+
+        var defineDirective = pair("#", TokenType.DIRECTIVE, List.of(
+                pair("define", TokenType.DIRECTIVE_NAME),
+                pair(" ", TokenType.DELIMITER),
+                pair("F", TokenType.IDENTIFIER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("1", TokenType.NUMBER),
+                pair("\n", TokenType.DIRECTIVE_END)
+        ));
+
+        var list = List.of(
+                defineDirective,
+                pair("int", TokenType.RESERVED),
+                pair(" ", TokenType.DELIMITER),
+                pair("F", TokenType.IDENTIFIER),
+                pair(" ", TokenType.DELIMITER),
+                pair("=", TokenType.OPERATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("2", TokenType.NUMBER),
+                pair(";", TokenType.PUNCTUATOR),
+                pair("\n", TokenType.DELIMITER)
+        );
+
+        test(s, list);
+    }
+
     private static void test(final String s, final List<Consumer<Token>> list) {
         test(s, parser -> {
             for (var c : list) {
