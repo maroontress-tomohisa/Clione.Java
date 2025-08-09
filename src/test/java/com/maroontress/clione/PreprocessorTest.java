@@ -14,7 +14,12 @@ public final class PreprocessorTest {
 
     @Test
     public void testSimpleMacroSubstitution() {
-        var s = "#define FOO 123\nint x = FOO;\n#undef FOO\nint y = FOO;\n";
+        var s = """
+            #define FOO 123
+            int x = FOO;
+            #undef FOO
+            int y = FOO;
+            """;
 
         var defineDirective = pair("#", TokenType.DIRECTIVE, List.of(
                 pair("define", TokenType.DIRECTIVE_NAME),
@@ -59,7 +64,10 @@ public final class PreprocessorTest {
 
     @Test
     public void testFunctionLikeMacro() {
-        var s = "#define ADD(a,b) (a+b)\nint x = ADD(1,2);\n";
+        var s = """
+            #define ADD(a,b) (a+b)
+            int x = ADD(1,2);
+            """;
 
         var defineDirective = pair("#", TokenType.DIRECTIVE, List.of(
                 pair("define", TokenType.DIRECTIVE_NAME),
@@ -101,7 +109,10 @@ public final class PreprocessorTest {
 
     @Test
     public void testFunctionLikeMacroNoArgs() {
-        var s = "#define F() 1\nint x = F();\n";
+        var s = """
+            #define F() 1
+            int x = F();
+            """;
 
         var defineDirective = pair("#", TokenType.DIRECTIVE, List.of(
                 pair("define", TokenType.DIRECTIVE_NAME),
@@ -132,7 +143,10 @@ public final class PreprocessorTest {
 
     @Test
     public void testFunctionLikeMacroNotExpanded() {
-        var s = "#define F() 1\nint F = 2;\n";
+        var s = """
+            #define F() 1
+            int F = 2;
+            """;
 
         var defineDirective = pair("#", TokenType.DIRECTIVE, List.of(
                 pair("define", TokenType.DIRECTIVE_NAME),
