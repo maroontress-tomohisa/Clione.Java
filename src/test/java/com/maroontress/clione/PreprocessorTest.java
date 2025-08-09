@@ -13,32 +13,27 @@ import org.junit.jupiter.api.Test;
 public final class PreprocessorTest {
 
     @Test
-    public void testSimpleMacroSubstitution() {
+    public void simpleMacro() {
         var s = """
             #define FOO 123
             int x = FOO;
             #undef FOO
             int y = FOO;
             """;
-
-        var defineDirective = pair("#", TokenType.DIRECTIVE, List.of(
+        var defineFoo = List.of(
                 pair("define", TokenType.DIRECTIVE_NAME),
                 pair(" ", TokenType.DELIMITER),
                 pair("FOO", TokenType.IDENTIFIER),
                 pair(" ", TokenType.DELIMITER),
                 pair("123", TokenType.NUMBER),
-                pair("\n", TokenType.DIRECTIVE_END)
-        ));
-
-        var undefDirective = pair("#", TokenType.DIRECTIVE, List.of(
+                pair("\n", TokenType.DIRECTIVE_END));
+        var undefFoo = List.of(
                 pair("undef", TokenType.DIRECTIVE_NAME),
                 pair(" ", TokenType.DELIMITER),
                 pair("FOO", TokenType.IDENTIFIER),
-                pair("\n", TokenType.DIRECTIVE_END)
-        ));
-
+                pair("\n", TokenType.DIRECTIVE_END));
         var list = List.of(
-                defineDirective,
+                pair("#", TokenType.DIRECTIVE, defineFoo),
                 pair("int", TokenType.RESERVED),
                 pair(" ", TokenType.DELIMITER),
                 pair("x", TokenType.IDENTIFIER),
@@ -48,7 +43,7 @@ public final class PreprocessorTest {
                 pair("123", TokenType.NUMBER),
                 pair(";", TokenType.PUNCTUATOR),
                 pair("\n", TokenType.DELIMITER),
-                undefDirective,
+                pair("#", TokenType.DIRECTIVE, undefFoo),
                 pair("int", TokenType.RESERVED),
                 pair(" ", TokenType.DELIMITER),
                 pair("y", TokenType.IDENTIFIER),
@@ -57,13 +52,12 @@ public final class PreprocessorTest {
                 pair(" ", TokenType.DELIMITER),
                 pair("FOO", TokenType.IDENTIFIER),
                 pair(";", TokenType.PUNCTUATOR),
-                pair("\n", TokenType.DELIMITER)
-        );
+                pair("\n", TokenType.DELIMITER));
         test(s, list);
     }
 
     @Test
-    public void simpleMacroSubstitutionTwice() {
+    public void simpleRecursiveMacro() {
         var s = """
             #define FOO BAR
             #define BAR 123
@@ -99,13 +93,12 @@ public final class PreprocessorTest {
     }
 
     @Test
-    public void testFunctionLikeMacro() {
+    public void functionLikeMacro() {
         var s = """
             #define ADD(a,b) (a+b)
             int x = ADD(1,2);
             """;
-
-        var defineDirective = pair("#", TokenType.DIRECTIVE, List.of(
+        var defineAdd = List.of(
                 pair("define", TokenType.DIRECTIVE_NAME),
                 pair(" ", TokenType.DELIMITER),
                 pair("ADD", TokenType.IDENTIFIER),
@@ -120,11 +113,9 @@ public final class PreprocessorTest {
                 pair("+", TokenType.OPERATOR),
                 pair("b", TokenType.IDENTIFIER),
                 pair(")", TokenType.PUNCTUATOR),
-                pair("\n", TokenType.DIRECTIVE_END)
-        ));
-
+                pair("\n", TokenType.DIRECTIVE_END));
         var list = List.of(
-                defineDirective,
+                pair("#", TokenType.DIRECTIVE, defineAdd),
                 pair("int", TokenType.RESERVED),
                 pair(" ", TokenType.DELIMITER),
                 pair("x", TokenType.IDENTIFIER),
@@ -137,20 +128,108 @@ public final class PreprocessorTest {
                 pair("2", TokenType.NUMBER),
                 pair(")", TokenType.PUNCTUATOR),
                 pair(";", TokenType.PUNCTUATOR),
-                pair("\n", TokenType.DELIMITER)
-        );
-
+                pair("\n", TokenType.DELIMITER));
         test(s, list);
     }
 
     @Test
-    public void testFunctionLikeMacroNoArgs() {
+    public void functionLikeRecursiveMacro() {
+        var s = """
+            #define FOO(a,b) BAR((a)+(b),(a)*(b))
+            #define BAR(x,y) ((x)+(y))
+            int x = FOO(1,2);
+            """;
+        var defineFoo = List.of(
+                pair("define", TokenType.DIRECTIVE_NAME),
+                pair(" ", TokenType.DELIMITER),
+                pair("FOO", TokenType.IDENTIFIER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("a", TokenType.IDENTIFIER),
+                pair(",", TokenType.PUNCTUATOR),
+                pair("b", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("BAR", TokenType.IDENTIFIER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("a", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair("+", TokenType.OPERATOR),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("b", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(",", TokenType.PUNCTUATOR),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("a", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair("*", TokenType.OPERATOR),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("b", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(")", TokenType.PUNCTUATOR),
+                pair("\n", TokenType.DIRECTIVE_END));
+        var defineBar = List.of(
+                pair("define", TokenType.DIRECTIVE_NAME),
+                pair(" ", TokenType.DELIMITER),
+                pair("BAR", TokenType.IDENTIFIER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("x", TokenType.IDENTIFIER),
+                pair(",", TokenType.PUNCTUATOR),
+                pair("y", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("x", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair("+", TokenType.OPERATOR),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("y", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(")", TokenType.PUNCTUATOR),
+                pair("\n", TokenType.DIRECTIVE_END));
+        var list = List.of(
+                pair("#", TokenType.DIRECTIVE, defineFoo),
+                pair("#", TokenType.DIRECTIVE, defineBar),
+                pair("int", TokenType.RESERVED),
+                pair(" ", TokenType.DELIMITER),
+                pair("x", TokenType.IDENTIFIER),
+                pair(" ", TokenType.DELIMITER),
+                pair("=", TokenType.OPERATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("1", TokenType.NUMBER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair("+", TokenType.OPERATOR),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("2", TokenType.NUMBER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(")", TokenType.PUNCTUATOR),
+                pair("+", TokenType.OPERATOR),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("1", TokenType.NUMBER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair("*", TokenType.OPERATOR),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("2", TokenType.NUMBER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(";", TokenType.PUNCTUATOR),
+                pair("\n", TokenType.DELIMITER));
+        test(s, list);
+    }
+
+    @Test
+    public void functionLikeMacroNoArguments() {
         var s = """
             #define F() 1
             int x = F();
             """;
-
-        var defineDirective = pair("#", TokenType.DIRECTIVE, List.of(
+        var defineF = List.of(
                 pair("define", TokenType.DIRECTIVE_NAME),
                 pair(" ", TokenType.DELIMITER),
                 pair("F", TokenType.IDENTIFIER),
@@ -158,11 +237,9 @@ public final class PreprocessorTest {
                 pair(")", TokenType.PUNCTUATOR),
                 pair(" ", TokenType.DELIMITER),
                 pair("1", TokenType.NUMBER),
-                pair("\n", TokenType.DIRECTIVE_END)
-        ));
-
+                pair("\n", TokenType.DIRECTIVE_END));
         var list = List.of(
-                defineDirective,
+                pair("#", TokenType.DIRECTIVE, defineF),
                 pair("int", TokenType.RESERVED),
                 pair(" ", TokenType.DELIMITER),
                 pair("x", TokenType.IDENTIFIER),
@@ -171,20 +248,17 @@ public final class PreprocessorTest {
                 pair(" ", TokenType.DELIMITER),
                 pair("1", TokenType.NUMBER),
                 pair(";", TokenType.PUNCTUATOR),
-                pair("\n", TokenType.DELIMITER)
-        );
-
+                pair("\n", TokenType.DELIMITER));
         test(s, list);
     }
 
     @Test
-    public void testFunctionLikeMacroNotExpanded() {
+    public void functionLikeMacroNotExpanded() {
         var s = """
             #define F() 1
             int F = 2;
             """;
-
-        var defineDirective = pair("#", TokenType.DIRECTIVE, List.of(
+        var defineF = List.of(
                 pair("define", TokenType.DIRECTIVE_NAME),
                 pair(" ", TokenType.DELIMITER),
                 pair("F", TokenType.IDENTIFIER),
@@ -192,11 +266,9 @@ public final class PreprocessorTest {
                 pair(")", TokenType.PUNCTUATOR),
                 pair(" ", TokenType.DELIMITER),
                 pair("1", TokenType.NUMBER),
-                pair("\n", TokenType.DIRECTIVE_END)
-        ));
-
+                pair("\n", TokenType.DIRECTIVE_END));
         var list = List.of(
-                defineDirective,
+                pair("#", TokenType.DIRECTIVE, defineF),
                 pair("int", TokenType.RESERVED),
                 pair(" ", TokenType.DELIMITER),
                 pair("F", TokenType.IDENTIFIER),
@@ -205,9 +277,7 @@ public final class PreprocessorTest {
                 pair(" ", TokenType.DELIMITER),
                 pair("2", TokenType.NUMBER),
                 pair(";", TokenType.PUNCTUATOR),
-                pair("\n", TokenType.DELIMITER)
-        );
-
+                pair("\n", TokenType.DELIMITER));
         test(s, list);
     }
 
