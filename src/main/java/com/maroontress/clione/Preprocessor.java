@@ -111,36 +111,17 @@ public final class Preprocessor implements LexicalParser {
     }
 
     private List<List<Token>> parseArguments() throws IOException {
-        var args = new ArrayList<List<Token>>();
-        var currentArg = new ArrayList<Token>();
-        var parenLevel = 1;
-
-        while (true) {
+        var builder = new ArgumentBuilder();
+        while (builder.getParenLevel() > 0) {
             var nextToken = parser.next();
             if (nextToken.isEmpty()) {
-                break; // Unexpected EOF
+                // Unexpected EOF
+                break;
             }
             var token = nextToken.get();
-
-            if (token.getType() == TokenType.PUNCTUATOR && token.getValue().equals(")")) {
-                parenLevel--;
-                if (parenLevel == 0) {
-                    if (!args.isEmpty() || !currentArg.isEmpty()) {
-                        args.add(currentArg);
-                    }
-                    break;
-                }
-            } else if (token.getType() == TokenType.PUNCTUATOR && token.getValue().equals("(")) {
-                parenLevel++;
-            } else if (token.getType() == TokenType.PUNCTUATOR && token.getValue().equals(",") && parenLevel == 1) {
-                args.add(currentArg);
-                currentArg = new ArrayList<>();
-                continue;
-            }
-
-            currentArg.add(token);
+            builder.addToken(token);
         }
-        return args;
+        return builder.build();
     }
 
     private Optional<Token> lookAheadForParen() throws IOException {
@@ -178,7 +159,6 @@ public final class Preprocessor implements LexicalParser {
         }
 
         var macroName = directiveTokens.get(nameIndex).getValue();
-        var nameToken = directiveTokens.get(nameIndex);
 
         // Check for function-like macro. There must be no space
         // between the macro name and the '('.
@@ -206,7 +186,8 @@ public final class Preprocessor implements LexicalParser {
     private void parseFunctionLikeMacro(final List<Token> tokens, final int nameIndex) {
         var macroName = tokens.get(nameIndex).getValue();
         var parameters = new ArrayList<String>();
-        var currentIndex = nameIndex + 2; // After macro name and '('
+        // After macro name and '('
+        var currentIndex = nameIndex + 2;
 
         // Parse parameters
         while (currentIndex < tokens.size()) {
@@ -277,5 +258,47 @@ public final class Preprocessor implements LexicalParser {
             return -1;
         }
         return index;
+    }
+
+    private static final class ArgumentBuilder {
+
+        private List<List<Token>> args = new ArrayList<>();
+        private List<Token> currentArg = new ArrayList<>();
+        private int parenLevel = 1;
+
+        public int getParenLevel() {
+            return parenLevel;
+        }
+
+        public List<List<Token>> build() {
+            return args;
+        }
+
+        public void addToken(Token token) {
+            var tokenType = token.getType();
+            var tokenValue = token.getValue();
+
+            if (tokenType != TokenType.PUNCTUATOR) {
+                currentArg.add(token);
+                return;
+            }
+            if (tokenValue.equals(",") && parenLevel == 1) {
+                args.add(currentArg);
+                currentArg = new ArrayList<>();
+                return;
+            }
+            if (tokenValue.equals(")")) {
+                --parenLevel;
+                if (parenLevel == 0) {
+                    if (!args.isEmpty() || !currentArg.isEmpty()) {
+                        args.add(currentArg);
+                    }
+                    return;
+                }
+            } else if (tokenValue.equals("(")) {
+                ++parenLevel;
+            }
+            currentArg.add(token);
+        }
     }
 }
