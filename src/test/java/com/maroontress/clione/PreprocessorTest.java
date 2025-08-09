@@ -63,6 +63,42 @@ public final class PreprocessorTest {
     }
 
     @Test
+    public void simpleMacroSubstitutionTwice() {
+        var s = """
+            #define FOO BAR
+            #define BAR 123
+            int x = FOO;
+            """;
+        var defineFoo = List.of(
+                pair("define", TokenType.DIRECTIVE_NAME),
+                pair(" ", TokenType.DELIMITER),
+                pair("FOO", TokenType.IDENTIFIER),
+                pair(" ", TokenType.DELIMITER),
+                pair("BAR", TokenType.IDENTIFIER),
+                pair("\n", TokenType.DIRECTIVE_END));
+        var defineBar = List.of(
+                pair("define", TokenType.DIRECTIVE_NAME),
+                pair(" ", TokenType.DELIMITER),
+                pair("BAR", TokenType.IDENTIFIER),
+                pair(" ", TokenType.DELIMITER),
+                pair("123", TokenType.NUMBER),
+                pair("\n", TokenType.DIRECTIVE_END));
+        var list = List.of(
+                pair("#", TokenType.DIRECTIVE, defineFoo),
+                pair("#", TokenType.DIRECTIVE, defineBar),
+                pair("int", TokenType.RESERVED),
+                pair(" ", TokenType.DELIMITER),
+                pair("x", TokenType.IDENTIFIER),
+                pair(" ", TokenType.DELIMITER),
+                pair("=", TokenType.OPERATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("123", TokenType.NUMBER),
+                pair(";", TokenType.PUNCTUATOR),
+                pair("\n", TokenType.DELIMITER));
+        test(s, list);
+    }
+
+    @Test
     public void testFunctionLikeMacro() {
         var s = """
             #define ADD(a,b) (a+b)
