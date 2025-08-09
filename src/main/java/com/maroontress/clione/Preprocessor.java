@@ -47,44 +47,59 @@ public final class Preprocessor implements LexicalParser {
 
     @Override
     public Optional<Token> next() throws IOException {
+        while (true) {
+            var nextToken = nextTokenFromAnywhere();
+            if (nextToken.isEmpty()) {
+                return Optional.empty();
+            }
+
+            var token = nextToken.get();
+
+            if (token.getType() == TokenType.IDENTIFIER) {
+                var name = token.getValue();
+                if (macros.containsKey(name)) {
+                    var macro = macros.get(name);
+                    if (macro.isFunctionLike()) {
+                        // It is a function-like macro.
+                        // We must look ahead for a '('.
+                        var openParen = lookAheadForParen();
+                        if (openParen.isPresent()) {
+                            var args = parseArguments();
+                            var substituted = substitute(macro, args);
+                            prependTokens(substituted);
+                            continue;
+                        }
+                    } else {
+                        // It is an object-like macro.
+                        prependTokens(macro.body());
+                        continue;
+                    }
+                }
+            }
+
+            if (token.getType() == TokenType.DIRECTIVE) {
+                updateMacrosFromDirective(token);
+            }
+
+            return Optional.of(token);
+        }
+    }
+
+    private Optional<Token> nextTokenFromAnywhere() throws IOException {
         if (!tokenQueue.isEmpty()) {
             return Optional.of(tokenQueue.removeFirst());
         }
+        return parser.next();
+    }
 
-        var nextToken = parser.next();
-        if (nextToken.isEmpty()) {
-            return Optional.empty();
+    private void prependTokens(final List<Token> tokens) {
+        for (var i = tokens.size() - 1; i >= 0; --i) {
+            tokenQueue.addFirst(tokens.get(i));
         }
+    }
 
-        var token = nextToken.get();
-
-        if (token.getType() == TokenType.IDENTIFIER) {
-            var name = token.getValue();
-            if (macros.containsKey(name)) {
-                var macro = macros.get(name);
-                if (macro.isFunctionLike()) {
-                    // It is a function-like macro.
-                    // We must look ahead for a '('.
-                    var openParen = lookAheadForParen();
-                    if (openParen.isPresent()) {
-                        var args = parseArguments();
-                        var substituted = substitute(macro, args);
-                        tokenQueue.addAll(substituted);
-                        return next();
-                    }
-                } else {
-                    // It is an object-like macro.
-                    tokenQueue.addAll(macro.body());
-                    return next();
-                }
-            }
-        }
-
-        if (token.getType() == TokenType.DIRECTIVE) {
-            updateMacrosFromDirective(token);
-        }
-
-        return Optional.of(token);
+    private void prependToken(final Token token) {
+        tokenQueue.addFirst(token);
     }
 
     private List<Token> substitute(final Macro macro, final List<List<Token>> args) {
@@ -113,7 +128,7 @@ public final class Preprocessor implements LexicalParser {
     private List<List<Token>> parseArguments() throws IOException {
         var builder = new ArgumentBuilder();
         while (builder.getParenLevel() > 0) {
-            var nextToken = parser.next();
+            var nextToken = nextTokenFromAnywhere();
             if (nextToken.isEmpty()) {
                 // Unexpected EOF
                 break;
@@ -125,7 +140,7 @@ public final class Preprocessor implements LexicalParser {
     }
 
     private Optional<Token> lookAheadForParen() throws IOException {
-        var nextToken = parser.next();
+        var nextToken = nextTokenFromAnywhere();
         if (nextToken.isEmpty()) {
             return Optional.empty();
         }
@@ -134,7 +149,7 @@ public final class Preprocessor implements LexicalParser {
             return Optional.of(token);
         }
         // This was not a function call, so put the token back.
-        tokenQueue.add(token);
+        prependToken(token);
         return Optional.empty();
     }
 
