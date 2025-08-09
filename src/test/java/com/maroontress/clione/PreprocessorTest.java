@@ -281,6 +281,84 @@ public final class PreprocessorTest {
         test(s, list);
     }
 
+    @Test
+    public void stringizingOperator() {
+        var s = """
+            #define STRINGIZE(x) #x
+            const char *s = STRINGIZE(foo bar);
+            """;
+        var define = List.of(
+                pair("define", TokenType.DIRECTIVE_NAME),
+                pair(" ", TokenType.DELIMITER),
+                pair("STRINGIZE", TokenType.IDENTIFIER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("x", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("#", TokenType.OPERATOR),
+                pair("x", TokenType.IDENTIFIER),
+                pair("\n", TokenType.DIRECTIVE_END));
+        var list = List.of(
+                pair("#", TokenType.DIRECTIVE, define),
+                pair("const", TokenType.RESERVED),
+                pair(" ", TokenType.DELIMITER),
+                pair("char", TokenType.RESERVED),
+                pair(" ", TokenType.DELIMITER),
+                pair("*", TokenType.OPERATOR),
+                pair("s", TokenType.IDENTIFIER),
+                pair(" ", TokenType.DELIMITER),
+                pair("=", TokenType.OPERATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("\"foo bar\"", TokenType.STRING),
+                pair(";", TokenType.PUNCTUATOR),
+                pair("\n", TokenType.DELIMITER));
+        test(s, list);
+    }
+
+    @Test
+    public void concatenationOperator() {
+        var s = """
+            #define CAT(a,b) a##b
+            int foobar = 123;
+            int x = CAT(foo, bar);
+            """;
+        var define = List.of(
+                pair("define", TokenType.DIRECTIVE_NAME),
+                pair(" ", TokenType.DELIMITER),
+                pair("CAT", TokenType.IDENTIFIER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("a", TokenType.IDENTIFIER),
+                pair(",", TokenType.PUNCTUATOR),
+                pair("b", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("a", TokenType.IDENTIFIER),
+                pair("##", TokenType.OPERATOR),
+                pair("b", TokenType.IDENTIFIER),
+                pair("\n", TokenType.DIRECTIVE_END));
+        var list = List.of(
+                pair("#", TokenType.DIRECTIVE, define),
+                pair("int", TokenType.RESERVED),
+                pair(" ", TokenType.DELIMITER),
+                pair("foobar", TokenType.IDENTIFIER),
+                pair(" ", TokenType.DELIMITER),
+                pair("=", TokenType.OPERATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("123", TokenType.NUMBER),
+                pair(";", TokenType.PUNCTUATOR),
+                pair("\n", TokenType.DELIMITER),
+                pair("int", TokenType.RESERVED),
+                pair(" ", TokenType.DELIMITER),
+                pair("x", TokenType.IDENTIFIER),
+                pair(" ", TokenType.DELIMITER),
+                pair("=", TokenType.OPERATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("foobar", TokenType.IDENTIFIER),
+                pair(";", TokenType.PUNCTUATOR),
+                pair("\n", TokenType.DELIMITER));
+        test(s, list);
+    }
+
     private static void test(final String s, final List<Consumer<Token>> list) {
         test(s, parser -> {
             for (var c : list) {
