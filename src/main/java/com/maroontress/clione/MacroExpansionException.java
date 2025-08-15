@@ -21,7 +21,13 @@ public abstract class MacroExpansionException extends PreprocessException {
     */
     protected MacroExpansionException(String message,
             List<Token> expandingTokens) {
-        super(message, expandingTokens.get(0));
+        this(message, expandingTokens.get(0), expandingTokens);
+    }
+
+    protected MacroExpansionException(String message,
+            Token causedToken,
+            List<Token> expandingTokens) {
+        super(message, causedToken);
         this.expandingTokens = List.copyOf(expandingTokens);
     }
 

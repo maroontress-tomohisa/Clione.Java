@@ -78,6 +78,20 @@ public final class FunctionLikeMacro implements Macro {
     public Map<String, List<Token>> getSubstitutionMapping(
             List<List<Token>> args, Preprocessor preprocessor)
             throws PreprocessException {
+        for (var tokenList : args) {
+            if (tokenList.size() == 0) {
+                continue;
+            }
+            var maybeFirst = tokenList.stream()
+                    .filter(t -> t.getType() == TokenType.DIRECTIVE)
+                    .findFirst();
+            if (maybeFirst.isPresent()) {
+                throw new DirectiveWithinMacroArgumentsException(
+                    "embedding a directive within macro arguments has undefined behavior",
+                    maybeFirst.get(),
+                    List.copyOf(preprocessor.getExpandingMacros().values()));
+            }
+        }
         return behavior.getSubstitutionMapping(this, args, preprocessor);
     }
 

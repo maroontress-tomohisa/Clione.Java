@@ -1121,6 +1121,26 @@ public final class PreprocessorTest {
     }
 
     @Test
+    public void embeddingDirectiveWithinMacroArguments() {
+        var s = """
+            #define IGNORE(x)
+            IGNORE(
+            #
+            )
+            """;
+        test(s, parser -> {
+            // Skip #define IGNORE(x)
+            parser.next();
+
+            var e = assertThrows(DirectiveWithinMacroArgumentsException.class, parser::next);
+            assertEquals("#", e.getCauseToken().getValue());
+            assertEquals("""
+                L3:1: error: embedding a directive within macro arguments has undefined behavior""",
+                e.getMessage());
+        });
+    }
+
+    @Test
     public void functionLikeMacroWithComment() {
         var s = """
             #define FOO(x) (x+1)
