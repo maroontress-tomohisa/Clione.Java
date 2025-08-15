@@ -33,6 +33,18 @@ compileTestJava {
 test {
     useJUnitPlatform()
     finalizedBy jacocoTestReport
+
+    testLogging {
+        outputs.upToDateWhen {false}
+        showStandardStreams = true
+
+        events "skipped", "failed", "standard_out", "standard_error"
+        exceptionFormat = 'full'
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+        displayGranularity = 2
+    }
 }
 
 jacocoTestReport {
