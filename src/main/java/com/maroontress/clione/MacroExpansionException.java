@@ -24,6 +24,14 @@ public abstract class MacroExpansionException extends PreprocessException {
         this(message, expandingTokens.get(0), expandingTokens);
     }
 
+    /**
+        Constructs an instance of this class.
+
+        @param message the detail message.
+        @param causedToken the token that caused this exception.
+        @param expandingTokens the list of tokens that represents the macro
+        expansion stack.
+    */
     protected MacroExpansionException(String message,
             Token causedToken,
             List<Token> expandingTokens) {
