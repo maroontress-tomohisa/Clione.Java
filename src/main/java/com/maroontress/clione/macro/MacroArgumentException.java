@@ -1,6 +1,8 @@
-package com.maroontress.clione;
+package com.maroontress.clione.macro;
 
 import java.util.List;
+
+import com.maroontress.clione.Token;
 
 /**
     Thrown to indicate that a function-like macro has been called with the

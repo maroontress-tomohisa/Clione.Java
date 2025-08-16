@@ -1,4 +1,6 @@
-package com.maroontress.clione;
+package com.maroontress.clione.macro;
+
+import com.maroontress.clione.Token;
 
 /**
     Thrown to indicate that a parenthesis is missing in a function-like macro

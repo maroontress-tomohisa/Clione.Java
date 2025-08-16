@@ -1,4 +1,4 @@
-package com.maroontress.clione;
+package com.maroontress.clione.macro;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -6,6 +6,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+
+import com.maroontress.clione.Preprocessor;
+import com.maroontress.clione.Token;
+import com.maroontress.clione.TokenType;
 
 /**
     Represents a function-like preprocessor macro.
@@ -59,19 +64,19 @@ public final class FunctionLikeMacro implements Macro {
     }
 
     @Override
-    public boolean apply(Preprocessor preprocessor, Token token)
+    public Optional<Token> apply(Preprocessor preprocessor, Token token)
             throws IOException {
         var openParen = preprocessor.lookAheadForParen();
-        if (openParen.isPresent()) {
-            var args = preprocessor.parseArguments(this);
-            preprocessor.getExpandingMacros()
-                .put(name(), token);
-            preprocessor.getTokenQueue()
-                .addFirst(new Preprocessor.MacroEndMarker(name()));
-            preprocessor.prependTokens(preprocessor.substitute(this, token, args));
-            return true;
+        if (!openParen.isPresent()) {
+            return Optional.of(token);
         }
-        return false;
+        var args = parseArguments(preprocessor);
+        preprocessor.getExpandingMacros()
+            .put(name(), token);
+        preprocessor.getTokenQueue()
+            .addFirst(new Preprocessor.MacroEndMarker(name()));
+        preprocessor.prependTokens(preprocessor.substitute(this, token, args));
+        return Optional.empty();
     }
 
     @Override
@@ -79,7 +84,7 @@ public final class FunctionLikeMacro implements Macro {
             List<List<Token>> args, Preprocessor preprocessor)
             throws PreprocessException {
         for (var tokenList : args) {
-            if (tokenList.size() == 0) {
+            if (tokenList.isEmpty()) {
                 continue;
             }
             var maybeFirst = tokenList.stream()
@@ -87,7 +92,6 @@ public final class FunctionLikeMacro implements Macro {
                     .findFirst();
             if (maybeFirst.isPresent()) {
                 throw new DirectiveWithinMacroArgumentsException(
-                    "embedding a directive within macro arguments has undefined behavior",
                     maybeFirst.get(),
                     List.copyOf(preprocessor.getExpandingMacros().values()));
             }
@@ -95,8 +99,7 @@ public final class FunctionLikeMacro implements Macro {
         return behavior.getSubstitutionMapping(this, args, preprocessor);
     }
 
-    @Override
-    public List<List<Token>> parseArguments(Preprocessor preprocessor)
+    private List<List<Token>> parseArguments(Preprocessor preprocessor)
             throws IOException {
         var builder = behavior.createArgumentBuilder(this);
         while (builder.getParenLevel() > 0) {

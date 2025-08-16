@@ -4,6 +4,17 @@ import com.maroontress.clione.impl.ReaderSource;
 import com.maroontress.clione.impl.SourceChars;
 import com.maroontress.clione.impl.TokenBuilder;
 import com.maroontress.clione.impl.Transcriber;
+import com.maroontress.clione.macro.CircularMacroException;
+import com.maroontress.clione.macro.FunctionLikeMacro;
+import com.maroontress.clione.macro.InvalidPreprocessingTokenException;
+import com.maroontress.clione.macro.InvalidVariadicArgumentException;
+import com.maroontress.clione.macro.Macro;
+import com.maroontress.clione.macro.MissingCommaException;
+import com.maroontress.clione.macro.MissingIdentifierException;
+import com.maroontress.clione.macro.MissingParenException;
+import com.maroontress.clione.macro.ObjectLikeMacro;
+import com.maroontress.clione.macro.PreprocessException;
+
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -45,11 +56,11 @@ public final class Preprocessor implements LexicalParser {
         this.parser = parser;
     }
 
-    Map<String, Token> getExpandingMacros() {
+    public Map<String, Token> getExpandingMacros() {
         return expandingMacros;
     }
 
-    LinkedList<PreprocessToken> getTokenQueue() {
+    public LinkedList<PreprocessToken> getTokenQueue() {
         return tokenQueue;
     }
 
@@ -97,7 +108,7 @@ public final class Preprocessor implements LexicalParser {
         return parser.next().map(TokenWrapper::new);
     }
 
-    protected void prependTokens(final List<Token> tokens) {
+    public void prependTokens(final List<Token> tokens) {
         for (var i = tokens.size() - 1; i >= 0; --i) {
             tokenQueue.addFirst(new TokenWrapper(tokens.get(i)));
         }
@@ -152,15 +163,11 @@ public final class Preprocessor implements LexicalParser {
         var tokenString = builder.toTokenString();
         var type = getTokenType(tokenString);
         if (type == null) {
-            var list = new ArrayList<>(expandingMacros.values());
-            throw new InvalidPreprocessingTokenException(
-                "pasting forms '"
-                    + tokenString
-                    + "', an invalid preprocessing token",
-                list);
+            var list = List.copyOf(expandingMacros.values());
+            throw new InvalidPreprocessingTokenException(tokenString, list);
         }
         return builder.toToken((type == TokenType.IDENTIFIER
-                && Keywords.C11.contains(tokenString))
+                && getReservedWords().contains(tokenString))
             ? TokenType.RESERVED
             : type);
     }
@@ -184,7 +191,7 @@ public final class Preprocessor implements LexicalParser {
         }
     }
 
-    List<Token> substitute(Macro macro, Token token, List<List<Token>> args)
+    public List<Token> substitute(Macro macro, Token token, List<List<Token>> args)
             throws PreprocessException {
         var mapping = macro.getSubstitutionMapping(args, this);
         var substituted = substituteParamsAndStringify(macro.body(), mapping);
@@ -249,17 +256,17 @@ public final class Preprocessor implements LexicalParser {
             substituted.addAll(vaTokens);
             return;
         }
-        var lastIndex = substituted.size() - 1;
-        while (lastIndex >= 0) {
-            var t = substituted.get(lastIndex);
+        var n = substituted.size() - 1;
+        for (var k = n; k >= 0; --k) {
+            var t = substituted.get(k);
             var type = t.getType();
             if (type == TokenType.DELIMITER) {
-                lastIndex--;
                 continue;
             }
             if (type == TokenType.PUNCTUATOR && ",".equals(t.getValue())) {
+                var list = List.copyOf(expandingMacros.values());
                 throw new InvalidVariadicArgumentException(
-                    "empty __VA_ARGS__ with preceding comma", this, t);
+                    "empty __VA_ARGS__ with preceding comma", list, t);
             }
             break;
         }
@@ -305,11 +312,7 @@ public final class Preprocessor implements LexicalParser {
         return result;
     }
 
-    List<List<Token>> parseArguments(Macro macro) throws IOException {
-        return macro.parseArguments(this);
-    }
-
-    Optional<Token> lookAheadForParen() throws IOException {
+    public Optional<Token> lookAheadForParen() throws IOException {
         var peeked = new ArrayList<PreprocessToken>();
 
         while (true) {
@@ -383,7 +386,7 @@ public final class Preprocessor implements LexicalParser {
         } else {
             body = getMacroBody(bodyIndex, directiveTokens);
         }
-        macros.put(macroName, new SimpleMacro(macroName, body));
+        macros.put(macroName, new ObjectLikeMacro(macroName, body));
     }
 
     // CHECKSTYLE:OFF CyclomaticComplexity
@@ -524,11 +527,11 @@ public final class Preprocessor implements LexicalParser {
         }
     }
 
-    private interface PreprocessToken {
+    public interface PreprocessToken {
         Optional<Token> handle(Preprocessor preprocessor) throws IOException;
     }
 
-    private static final class TokenWrapper implements PreprocessToken {
+    public static final class TokenWrapper implements PreprocessToken {
         private final Token token;
 
         TokenWrapper(Token token) {
@@ -539,37 +542,41 @@ public final class Preprocessor implements LexicalParser {
             return token;
         }
 
+        // このクラスはIDENTIFIER, DIRECTIVE, それ以外で分けた方が良い
+
         @Override
         public Optional<Token> handle(Preprocessor preprocessor) throws IOException {
-            if (token.getType() == TokenType.IDENTIFIER) {
-                var name = token.getValue();
-                if (preprocessor.macros.containsKey(name)) {
-                    if (preprocessor.expandingMacros.containsKey(name)) {
-                        var path = new ArrayList<>(preprocessor.expandingMacros.keySet());
-                        path.add(name);
-                        var cycle = String.join(" -> ", path);
-                        throw new CircularMacroException(name, cycle, preprocessor);
-                    }
-
-                    var macro = preprocessor.macros.get(name);
-                    if (macro.apply(preprocessor, token)) {
-                        return Optional.empty();
-                    }
-                }
+            var type = token.getType();
+            if (type == TokenType.IDENTIFIER) {
+                return handleIdentifier(preprocessor);
             }
-
-            if (token.getType() == TokenType.DIRECTIVE) {
+            if (type == TokenType.DIRECTIVE) {
                 preprocessor.updateMacrosFromDirective(token);
             }
-
             return Optional.of(token);
+        }
+
+        private Optional<Token> handleIdentifier(Preprocessor preprocessor)
+                throws IOException {
+            var name = token.getValue();
+            var macros = preprocessor.macros;
+            var m = macros.get(name);
+            if (m == null) {
+                return Optional.of(token);
+            }
+            var expandingMacros = preprocessor.expandingMacros;
+            if (expandingMacros.containsKey(name)) {
+                var expandingTokens = List.copyOf(expandingMacros.values());
+                throw new CircularMacroException(name, expandingTokens);
+            }
+            return m.apply(preprocessor, token);
         }
     }
 
-    static final class MacroEndMarker implements PreprocessToken {
+    public static final class MacroEndMarker implements PreprocessToken {
         private final String name;
 
-        MacroEndMarker(String name) {
+        public MacroEndMarker(String name) {
             this.name = name;
         }
 

@@ -4,4 +4,5 @@
 */
 module com.maroontress.clione {
     exports com.maroontress.clione;
+    exports com.maroontress.clione.macro;
 }

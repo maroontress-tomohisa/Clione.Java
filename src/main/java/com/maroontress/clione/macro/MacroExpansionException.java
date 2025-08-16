@@ -1,6 +1,8 @@
-package com.maroontress.clione;
+package com.maroontress.clione.macro;
 
 import java.util.List;
+
+import com.maroontress.clione.Token;
 
 /**
     The base class for exceptions thrown during macro expansion.
@@ -40,9 +42,10 @@ public abstract class MacroExpansionException extends PreprocessException {
     }
 
     /**
-     * Returns the list of tokens that represents the macro expansion stack.
-     * @return the list of tokens.
-     */
+        Returns the list of tokens that represents the macro expansion stack.
+
+        @return the list of tokens.
+    */
     public List<Token> getExpandingTokens() {
         return expandingTokens;
     }

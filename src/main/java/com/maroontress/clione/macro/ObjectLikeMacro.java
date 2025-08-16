@@ -1,15 +1,18 @@
-package com.maroontress.clione;
+package com.maroontress.clione.macro;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+
+import com.maroontress.clione.Preprocessor;
+import com.maroontress.clione.Token;
 
 /**
     Represents an object-like preprocessor macro.
 */
-public final class SimpleMacro implements Macro {
+public final class ObjectLikeMacro implements Macro {
 
     private final String name;
     private final List<Token> body;
@@ -20,7 +23,7 @@ public final class SimpleMacro implements Macro {
         @param name The name of the macro.
         @param body The list of tokens that form the macro's body.
     */
-    public SimpleMacro(String name, List<Token> body) {
+    public ObjectLikeMacro(String name, List<Token> body) {
         this.name = name;
         this.body = List.copyOf(body);
     }
@@ -41,14 +44,14 @@ public final class SimpleMacro implements Macro {
     }
 
     @Override
-    public boolean apply(Preprocessor preprocessor,
-                         Token token) throws IOException {
+    public Optional<Token> apply(Preprocessor preprocessor, Token token)
+            throws IOException {
         preprocessor.getExpandingMacros()
             .put(name(), token);
         preprocessor.getTokenQueue()
             .addFirst(new Preprocessor.MacroEndMarker(name()));
         preprocessor.prependTokens(body());
-        return true;
+        return Optional.empty();
     }
 
     @Override
@@ -59,11 +62,6 @@ public final class SimpleMacro implements Macro {
     }
 
     @Override
-    public List<List<Token>> parseArguments(Preprocessor unused) {
-        return new ArrayList<>();
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -71,7 +69,7 @@ public final class SimpleMacro implements Macro {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        var that = (SimpleMacro) o;
+        var that = (ObjectLikeMacro) o;
         return Objects.equals(name, that.name)
             && Objects.equals(body, that.body);
     }

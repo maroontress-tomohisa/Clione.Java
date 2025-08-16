@@ -1,7 +1,9 @@
-package com.maroontress.clione;
+package com.maroontress.clione.macro;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
+
+import com.maroontress.clione.Token;
 
 /**
     Thrown to indicate that a circular macro expansion has been detected.
@@ -21,30 +23,39 @@ public final class CircularMacroException extends MacroExpansionException {
 
         @param macroName The name of the macro where the circular expansion
         was detected.
-        @param cyclePath A string representing the expansion path that forms
-        the cycle.
-        @param preprocessor The preprocessor instance.
     */
     public CircularMacroException(
-            final String macroName,
-            final String cyclePath,
-            final Preprocessor preprocessor) {
-        super(buildMessage(macroName,
-                           cyclePath,
-                           new ArrayList<>(preprocessor.getExpandingMacros().values())),
-              new ArrayList<>(preprocessor.getExpandingMacros().values()));
+            String macroName,
+            List<Token> expandingTokens) {
+        this(macroName,
+            newCyclePath(macroName, expandingTokens),
+            expandingTokens);
+    }
+
+    private CircularMacroException(
+            String macroName,
+            String cyclePath,
+            List<Token> expandingTokens) {
+        super(newMessage(macroName, cyclePath, expandingTokens.get(0)),
+            expandingTokens);
         this.macroName = macroName;
         this.cyclePath = cyclePath;
     }
 
-    private static String buildMessage(
-            final String macroName,
-            final String cyclePath,
-            final List<Token> expandingTokens) {
-        var causeToken = expandingTokens.get(0);
+    private static String newCyclePath(
+            String macroName, List<Token> expandingTokens) {
+        var path = Stream.concat(
+                expandingTokens.stream().map(t -> t.getValue()),
+                Stream.of(macroName))
+            .toList();
+        return String.join(" -> ", path);
+    }
+
+    private static String newMessage(
+            String macroName, String cycle, Token causeToken) {
         return String.format(
                 "%s: error: circular macro expansion for '%s', path: %s",
-                causeToken.getSpan().getStart(), macroName, cyclePath);
+                causeToken.getSpan().getStart(), macroName, cycle);
     }
 
     /**

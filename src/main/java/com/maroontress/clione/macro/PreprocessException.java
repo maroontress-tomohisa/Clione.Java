@@ -1,6 +1,8 @@
-package com.maroontress.clione;
+package com.maroontress.clione.macro;
 
 import java.io.IOException;
+
+import com.maroontress.clione.Token;
 
 /**
     The base class for exceptions thrown during preprocessing.

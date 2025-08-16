@@ -12,6 +12,15 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
 
+import com.maroontress.clione.macro.CircularMacroException;
+import com.maroontress.clione.macro.DirectiveWithinMacroArgumentsException;
+import com.maroontress.clione.macro.InvalidPreprocessingTokenException;
+import com.maroontress.clione.macro.InvalidVariadicArgumentException;
+import com.maroontress.clione.macro.MacroArgumentException;
+import com.maroontress.clione.macro.MissingCommaException;
+import com.maroontress.clione.macro.MissingIdentifierException;
+import com.maroontress.clione.macro.MissingParenException;
+
 public final class PreprocessorTest {
 
     @Test

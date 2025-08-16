@@ -1,14 +1,19 @@
-package com.maroontress.clione;
+package com.maroontress.clione.macro;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+
+import com.maroontress.clione.Preprocessor;
+import com.maroontress.clione.Token;
 
 /**
     Represents a preprocessor macro.
 */
 public interface Macro {
+
     /**
         Returns the name of the macro.
 
@@ -35,10 +40,10 @@ public interface Macro {
 
         @param preprocessor The preprocessor instance.
         @param token The token that triggered the macro expansion.
-        @return {@code true} if the macro was expanded, {@code false} otherwise.
         @throws IOException if an I/O error occurs.
     */
-    boolean apply(Preprocessor preprocessor, Token token) throws IOException;
+    Optional<Token> apply(Preprocessor preprocessor, Token token)
+            throws IOException;
 
     /**
         Returns the substitution mapping from the given macro arguments.
@@ -50,16 +55,6 @@ public interface Macro {
     */
     Map<String, List<Token>> getSubstitutionMapping(List<List<Token>> args,
             Preprocessor preprocessor) throws PreprocessException;
-
-    /**
-        Parses the macro arguments from the given preprocessor.
-
-        @param preprocessor The preprocessor instance.
-        @return The list of macro arguments.
-        @throws IOException if an I/O error occurs.
-    */
-    List<List<Token>> parseArguments(Preprocessor preprocessor)
-            throws IOException;
 
     /**
         Returns the default substitution mapping from the given macro arguments.
