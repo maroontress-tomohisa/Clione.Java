@@ -387,19 +387,22 @@ public final class Preprocessor implements LexicalParser {
             var maybeLeft = findLastPastableToken(result);
             var maybeRight = findFirstPastableToken(tokens, i + 1);
 
-            if (maybeLeft.isEmpty() || maybeRight.isEmpty()) {
-                // ここはちょっと変ですね。##演算子の展開時、左側オペランドがなければ右だけ、
-                // 右側オペランドがなければ左だけになります。両側のオペランドがなければ##を
-                // 無視します:
-                ++i;
+            if (maybeRight.isEmpty()) {
+                maybeLeft.map(left -> result.subList(left.index + 1, result.size()))
+                    .orElse(result)
+                    .clear();
+                break;
+            }
+            var right = maybeRight.get();
+            if (maybeLeft.isEmpty()) {
+                result.clear();
+                i = right.index;
                 continue;
             }
             var left = maybeLeft.get();
-            var right = maybeRight.get();
             result.subList(left.index, result.size()).clear();
             var concatenated = Tokens.concatenate(
-                left.token, right.token,
-                getReservedWords());
+                left.token, right.token, getReservedWords());
             if (concatenated.getType() == TokenType.UNKNOWN) {
                 throw new InvalidPreprocessingTokenException(
                     concatenated.getValue(),
