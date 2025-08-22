@@ -24,7 +24,6 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -722,7 +721,7 @@ public final class Preprocessor implements LexicalParser {
                 };
     }
 
-    private List<Token> getMacroBody(int bodyIndex, final List<Token> tokens) {
+    private List<Token> getMacroBody(int bodyIndex, List<Token> tokens) {
         var macroBody = new ArrayList<Token>();
         for (int i = bodyIndex; i < tokens.size(); i++) {
             var token = tokens.get(i);
