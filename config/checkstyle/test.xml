@@ -49,15 +49,7 @@
     <property name="files" value=".*[\\/]src[\\/](test|it)[\\/].*(?&lt;!Support)\.java"/>
   </module>
   <module name="SuppressWarningsFilter"/>
-  <module name="SuppressWithPlainTextCommentFilter">
-    <!--
-      Use suppressions.xml for suppressions, this is only example.
-      checkFormat will prevent suppression comments from being valid.
-    -->
-    <property name="checkFormat" value="IGNORETHIS"/>
-    <property name="offCommentFormat" value="CSOFF\: .*"/>
-    <property name="onCommentFormat" value="CSON\: .*"/>
-  </module>
+  <module name="SuppressWithPlainTextCommentFilter"/>
 
   <!-- Headers -->
   <!--

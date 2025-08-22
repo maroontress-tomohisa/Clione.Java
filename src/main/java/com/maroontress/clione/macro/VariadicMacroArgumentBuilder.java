@@ -1,0 +1,24 @@
+package com.maroontress.clione.macro;
+
+import com.maroontress.clione.Token;
+
+/**
+    Builds arguments for variadic function-like macros.
+*/
+final class VariadicMacroArgumentBuilder extends MacroArgumentBuilder {
+    /**
+        Constructs a new instance.
+
+        @param macro The macro for which the builder is created.
+        @param openParen The opening parenthesis of the argument list.
+    */
+    VariadicMacroArgumentBuilder(final FunctionLikeMacro macro, final Token openParen) {
+        super(macro, openParen);
+    }
+
+    @Override
+    protected boolean skipsComma() {
+        var args = getArgs();
+        return args.size() >= getMacroParameterSize();
+    }
+}
