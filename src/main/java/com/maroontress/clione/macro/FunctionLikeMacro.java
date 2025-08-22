@@ -121,7 +121,6 @@ public final class FunctionLikeMacro implements Macro {
             }
             var macroToken = maybeMacroToken.get();
             if (macroToken instanceof MacroEndMarker) {
-                preprocessor.getTokenQueue().addFirst(macroToken);
                 var expandingTokens = List.copyOf(
                     preprocessor.getExpandingMacros().values());
                 throw new UnterminatedMacroInvocationException(

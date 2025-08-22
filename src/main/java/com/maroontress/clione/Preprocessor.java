@@ -14,11 +14,14 @@ import com.maroontress.clione.macro.ObjectLikeMacro;
 import com.maroontress.clione.macro.ParameterOriginatedToken;
 import com.maroontress.clione.macro.PreprocessException;
 import com.maroontress.clione.macro.MacroToken;
-import com.maroontress.clione.macro.TokenWrapper;
+import com.maroontress.clione.macro.WrappedToken;
 import com.maroontress.clione.macro.Tokens;
 
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -43,7 +46,7 @@ public final class Preprocessor implements LexicalParser {
     private final Map<String, Token> expandingMacros = new LinkedHashMap<>();
     private final Map<String, Macro> macros = new HashMap<>();
     private final LexicalParser parser;
-    private LinkedList<MacroToken> tokenQueue = new LinkedList<>();
+    private Deque<MacroToken> tokenQueue = new ArrayDeque<>();
 
     /**
         Creates a new instance.
@@ -61,15 +64,6 @@ public final class Preprocessor implements LexicalParser {
     */
     public Map<String, Token> getExpandingMacros() {
         return expandingMacros;
-    }
-
-    /**
-        Returns the queue of preprocessor tokens.
-
-        @return The queue of preprocessor tokens.
-    */
-    public LinkedList<MacroToken> getTokenQueue() {
-        return tokenQueue;
     }
 
     @Override
@@ -142,7 +136,7 @@ public final class Preprocessor implements LexicalParser {
         if (!tokenQueue.isEmpty()) {
             return Optional.of(tokenQueue.removeFirst());
         }
-        return parser.next().map(TokenWrapper::new);
+        return parser.next().map(WrappedToken::of);
     }
 
     /**
@@ -190,7 +184,7 @@ public final class Preprocessor implements LexicalParser {
     */
     private void prependTokens(List<Token> tokens) {
         for (var i = tokens.size() - 1; i >= 0; --i) {
-            tokenQueue.addFirst(new TokenWrapper(tokens.get(i)));
+            tokenQueue.addFirst(WrappedToken.of(tokens.get(i)));
         }
     }
 
@@ -223,10 +217,10 @@ public final class Preprocessor implements LexicalParser {
     }
 
     // CHECKSTYLE:OFF CyclomaticComplexity
-    private List<MacroToken> expandMarkedTokens(List<MacroToken> tokens,
+    private List<MacroToken> expandMarkedTokens(List<WrappedToken> tokens,
             Macro parentMacro, Token parentToken) throws PreprocessException {
         var result = new ArrayList<MacroToken>();
-        var worklist = new LinkedList<>(tokens);
+        var worklist = new ArrayDeque<MacroToken>(tokens);
 
         while (!worklist.isEmpty()) {
             var current = worklist.removeFirst();
@@ -307,10 +301,10 @@ public final class Preprocessor implements LexicalParser {
     }
     // CHECKSTYLE:ON CyclomaticComplexity
 
-    private List<MacroToken> substituteParamsAndStringify(Macro macro,
+    private List<WrappedToken> substituteParamsAndStringify(Macro macro,
             Map<String, List<Token>> mapping) throws PreprocessException {
         var body = macro.body();
-        var substituted = new ArrayList<MacroToken>();
+        var substituted = new ArrayList<WrappedToken>();
         var i = 0;
         while (i < body.size()) {
             var currentToken = body.get(i);
@@ -329,18 +323,18 @@ public final class Preprocessor implements LexicalParser {
                         var argTokens = mapping.get(nextValue);
                         var stringized = Tokens.stringize(argTokens,
                                 currentToken.getSpan());
-                        substituted.add(new TokenWrapper(stringized));
+                        substituted.add(WrappedToken.of(stringized));
                         i = nextTokenIndex;
                     } else {
-                        substituted.add(new TokenWrapper(currentToken));
+                        substituted.add(WrappedToken.of(currentToken));
                     }
                 } else {
-                    substituted.add(new TokenWrapper(currentToken));
+                    substituted.add(WrappedToken.of(currentToken));
                 }
             } else if (currentToken.getType() == TokenType.IDENTIFIER) {
                 substituteIdentifier(currentToken, mapping, substituted);
             } else {
-                substituted.add(new TokenWrapper(currentToken));
+                substituted.add(WrappedToken.of(currentToken));
             }
             i++;
         }
@@ -349,7 +343,7 @@ public final class Preprocessor implements LexicalParser {
 
     private void substituteIdentifier(Token token,
             Map<String, List<Token>> mapping,
-            List<MacroToken> substituted) throws PreprocessException {
+            List<WrappedToken> substituted) throws PreprocessException {
         var tokenValue = token.getValue();
         if ("__VA_ARGS__".equals(tokenValue)) {
             // ここはポリモーフィズムを適用すべき
@@ -362,19 +356,19 @@ public final class Preprocessor implements LexicalParser {
         }
         var value = mapping.get(tokenValue);
         if (value == null) {
-            substituted.add(new TokenWrapper(token));
+            substituted.add(WrappedToken.of(token));
             return;
         }
         value.forEach(t -> substituted.add(new ParameterOriginatedToken(t)));
     }
 
-    private List<MacroToken> concatenateTokens(List<MacroToken> tokens)
+    private List<WrappedToken> concatenateTokens(List<WrappedToken> tokens)
             throws PreprocessException {
         if (tokens.isEmpty()) {
             return tokens;
         }
 
-        var result = new ArrayList<MacroToken>();
+        var result = new ArrayList<WrappedToken>();
         var i = 0;
         while (i < tokens.size()) {
             var currentMacroToken = tokens.get(i);
@@ -408,17 +402,16 @@ public final class Preprocessor implements LexicalParser {
                     concatenated.getValue(),
                     List.copyOf(expandingMacros.values()));
             }
-            result.add(new TokenWrapper(concatenated));
+            result.add(WrappedToken.of(concatenated));
             i = right.index + 1;
         }
         return result;
     }
 
     private Optional<TokenAndIndex> findLastPastableToken(
-            List<MacroToken> macroTokenList) {
-        for (var k = macroTokenList.size() - 1; k >= 0; --k) {
-            var macroToken = macroTokenList.get(k);
-            var token = macroToken.getToken().get();
+            List<WrappedToken> wrappedTokens) {
+        for (var k = wrappedTokens.size() - 1; k >= 0; --k) {
+            var token = wrappedTokens.get(k).unwrap();
             if (!Tokens.isDelimiterOrComment(token)) {
                 return Optional.of(new TokenAndIndex(token, k));
             }
@@ -427,11 +420,10 @@ public final class Preprocessor implements LexicalParser {
     }
 
     private Optional<TokenAndIndex> findFirstPastableToken(
-            List<MacroToken> macroTokenList, int start) {
-        var n = macroTokenList.size();
+            List<WrappedToken> wrappedTokens, int start) {
+        var n = wrappedTokens.size();
         for (var k = start; k < n; ++k) {
-            var macroToken = macroTokenList.get(k);
-            var token = macroToken.getToken().get();
+            var token = wrappedTokens.get(k).unwrap();
             if (!Tokens.isDelimiterOrComment(token)) {
                 return Optional.of(new TokenAndIndex(token, k));
             }
@@ -439,7 +431,8 @@ public final class Preprocessor implements LexicalParser {
         return Optional.empty();
     }
 
-    private static Optional<Token> lookAheadForParen(List<MacroToken> list) {
+    private static Optional<Token> lookAheadForParen(
+            Collection<MacroToken> list) {
         // Streamで書き直せるね
         var iter = list.iterator();
         while (iter.hasNext()) {

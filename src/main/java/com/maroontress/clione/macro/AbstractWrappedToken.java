@@ -4,10 +4,7 @@ import java.util.Optional;
 
 import com.maroontress.clione.Token;
 
-/**
-    Wraps a {@link Token} to be used as a {@link MacroToken}.
-*/
-public final class TokenWrapper implements MacroToken {
+public abstract class AbstractWrappedToken implements WrappedToken {
 
     private final Token token;
 
@@ -16,22 +13,25 @@ public final class TokenWrapper implements MacroToken {
 
         @param token The token to be wrapped.
     */
-    public TokenWrapper(final Token token) {
+    public AbstractWrappedToken(Token token) {
         this.token = token;
     }
 
     @Override
-    public Optional<Token> getToken() {
+    public final Optional<Token> getToken() {
         return Optional.of(token);
     }
 
     @Override
-    public Optional<String> getMacroEndName() {
+    public final Optional<String> getMacroEndName() {
         return Optional.empty();
     }
 
     @Override
-    public boolean isOriginatingFromParameter() {
-        return false;
+    public abstract boolean isOriginatingFromParameter();
+
+    @Override
+    public final Token unwrap() {
+        return token;
     }
 }
