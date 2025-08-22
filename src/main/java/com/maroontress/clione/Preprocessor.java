@@ -38,6 +38,7 @@ import java.util.function.Predicate;
 */
 // CHECKSTYLE:OFF ClassDataAbstractionCoupling
 public final class Preprocessor implements LexicalParser {
+    // CHECKSTYLE:ON ClassDataAbstractionCoupling
 
     private final Map<String, Token> expandingMacros = new LinkedHashMap<>();
     private final Map<String, Macro> macros = new HashMap<>();
@@ -221,6 +222,7 @@ public final class Preprocessor implements LexicalParser {
         return result;
     }
 
+    // CHECKSTYLE:OFF CyclomaticComplexity
     private List<MacroToken> expandMarkedTokens(List<MacroToken> tokens,
             Macro parentMacro, Token parentToken) throws PreprocessException {
         var result = new ArrayList<MacroToken>();
@@ -303,6 +305,7 @@ public final class Preprocessor implements LexicalParser {
 
         return result;
     }
+    // CHECKSTYLE:ON CyclomaticComplexity
 
     private List<MacroToken> substituteParamsAndStringify(Macro macro,
             Map<String, List<Token>> mapping) throws PreprocessException {
@@ -376,47 +379,61 @@ public final class Preprocessor implements LexicalParser {
         while (i < tokens.size()) {
             var currentMacroToken = tokens.get(i);
             var currentToken = currentMacroToken.getToken().get();
-            if (Tokens.isConcatenatingOperator(currentToken)) {
-                MacroToken left = null;
-                int leftIndex = -1;
-                for (var j = result.size() - 1; j >= 0; j--) {
-                    if (!Tokens.isDelimiterOrComment(result.get(j).getToken().get())) {
-                        left = result.get(j);
-                        leftIndex = j;
-                        break;
-                    }
-                }
-
-                MacroToken right = null;
-                int rightIndex = -1;
-                for (var j = i + 1; j < tokens.size(); j++) {
-                    if (!Tokens.isDelimiterOrComment(tokens.get(j).getToken().get())) {
-                        right = tokens.get(j);
-                        rightIndex = j;
-                        break;
-                    }
-                }
-
-                if (left != null && right != null) {
-                    result.subList(leftIndex, result.size()).clear();
-                    var concatenated = Tokens.concatenate(
-                        left.getToken().get(),
-                        right.getToken().get(),
-                        getReservedWords());
-                    if (concatenated.getType() == TokenType.UNKNOWN) {
-                        throw new InvalidPreprocessingTokenException(
-                            concatenated.getValue(),
-                            List.copyOf(expandingMacros.values()));
-                    }
-                    result.add(new TokenWrapper(concatenated));
-                    i = rightIndex;
-                }
-            } else {
+            if (!Tokens.isConcatenatingOperator(currentToken)) {
                 result.add(currentMacroToken);
+                ++i;
+                continue;
             }
-            i++;
+            var maybeLeft = findLastPastableToken(result);
+            var maybeRight = findFirstPastableToken(tokens, i + 1);
+
+            if (maybeLeft.isEmpty() || maybeRight.isEmpty()) {
+                // ここはちょっと変ですね。##演算子の展開時、左側オペランドがなければ右だけ、
+                // 右側オペランドがなければ左だけになります。両側のオペランドがなければ##を
+                // 無視します:
+                ++i;
+                continue;
+            }
+            var left = maybeLeft.get();
+            var right = maybeRight.get();
+            result.subList(left.index, result.size()).clear();
+            var concatenated = Tokens.concatenate(
+                left.token, right.token,
+                getReservedWords());
+            if (concatenated.getType() == TokenType.UNKNOWN) {
+                throw new InvalidPreprocessingTokenException(
+                    concatenated.getValue(),
+                    List.copyOf(expandingMacros.values()));
+            }
+            result.add(new TokenWrapper(concatenated));
+            i = right.index + 1;
         }
         return result;
+    }
+
+    private Optional<TokenAndIndex> findLastPastableToken(
+            List<MacroToken> macroTokenList) {
+        for (var k = macroTokenList.size() - 1; k >= 0; --k) {
+            var macroToken = macroTokenList.get(k);
+            var token = macroToken.getToken().get();
+            if (!Tokens.isDelimiterOrComment(token)) {
+                return Optional.of(new TokenAndIndex(token, k));
+            }
+        }
+        return Optional.empty();
+    }
+
+    private Optional<TokenAndIndex> findFirstPastableToken(
+            List<MacroToken> macroTokenList, int start) {
+        var n = macroTokenList.size();
+        for (var k = start; k < n; ++k) {
+            var macroToken = macroTokenList.get(k);
+            var token = macroToken.getToken().get();
+            if (!Tokens.isDelimiterOrComment(token)) {
+                return Optional.of(new TokenAndIndex(token, k));
+            }
+        }
+        return Optional.empty();
     }
 
     private static Optional<Token> lookAheadForParen(List<MacroToken> list) {
@@ -519,8 +536,10 @@ public final class Preprocessor implements LexicalParser {
         }
     }
 
-    private void handleDefine(List<Token> directiveTokens, int directiveNameIndex) throws IOException {
-        int nameIndex = findFirstIdentifierAfter(directiveNameIndex, directiveTokens);
+    private void handleDefine(List<Token> directiveTokens,
+            int directiveNameIndex) throws IOException {
+        int nameIndex = findFirstIdentifierAfter(directiveNameIndex,
+                directiveTokens);
         if (nameIndex == -1) {
             return;
         }
@@ -638,6 +657,7 @@ public final class Preprocessor implements LexicalParser {
 
         macros.put(macroName, new FunctionLikeMacro(macroName, parameters, isVariadic, body));
     }
+    // CHECKSTYLE:ON CyclomaticComplexity
 
     private void validateMacroBody(
             List<Token> body, List<String> parameters, boolean isVariadic)
@@ -797,5 +817,7 @@ public final class Preprocessor implements LexicalParser {
     private interface BodySupplier {
         List<Token> get() throws PreprocessException;
     }
+
+    private record TokenAndIndex(Token token, int index) {
+    }
 }
-// CHECKSTYLE:ON ClassDataAbstractionCoupling
