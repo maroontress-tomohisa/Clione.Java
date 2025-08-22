@@ -8,9 +8,8 @@ import com.maroontress.clione.Token;
 
     <p>This interface is used to distinguish tokens that originate from the
     original source code from those that are generated during macro
-pre-expansion.
-    It extends the {@link MacroToken} interface and adds a method to
-    retrieve the original, unwrapped token.</p>
+    pre-expansion. It extends the {@link MacroToken} interface and adds a
+    method to retrieve the original, unwrapped token.</p>
 */
 public interface WrappedToken extends MacroToken {
 

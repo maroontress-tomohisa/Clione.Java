@@ -683,7 +683,7 @@ public final class Preprocessor implements LexicalParser {
 
     private void validateStringizingOperators(
             List<Token> body, List<String> parameters, boolean isVariadic)
-                throws PreprocessException {
+            throws PreprocessException {
         var isValid = newStringizingOperandValidator(parameters, isVariadic);
         for (var i = 0; i < body.size(); ++i) {
             var token = body.get(i);
@@ -700,8 +700,7 @@ public final class Preprocessor implements LexicalParser {
             }
             var nextToken = body.get(nextTokenIndex);
             if (!isValid.test(nextToken)) {
-                throw new InvalidStringizingOperatorException(
-                        nextToken);
+                throw new InvalidStringizingOperatorException(nextToken);
             }
         }
     }

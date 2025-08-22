@@ -7,9 +7,9 @@ import com.maroontress.clione.Token;
 /**
     Provides a base implementation of the {@link WrappedToken} interface.
 
-    <p>This abstract class simplifies the creation of new wrapped token types by
-    providing a default implementation for most of the methods defined in the
-    {@code WrappedToken} and {@link MacroToken} interfaces. Subclasses are
+    <p>This abstract class simplifies the creation of new wrapped token types
+    by providing a default implementation for most of the methods defined in
+    the {@code WrappedToken} and {@link MacroToken} interfaces. Subclasses are
     only required to implement the {@link #isOriginatingFromParameter()}
     method.</p>
 */

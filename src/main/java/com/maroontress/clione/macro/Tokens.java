@@ -5,7 +5,6 @@ import java.io.StringReader;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import com.maroontress.clione.SourceChar;
@@ -209,34 +208,7 @@ public final class Tokens {
         return builder.toToken(TokenType.STRING);
     }
 
-    private static boolean needsToEscape(SourceChar sourceChar) {
-        var c = sourceChar.toChar();
-        return c == '\\' || c == '"';
-    }
-
-    private static StartEndSpans newSpans(List<Token> tokens) {
-        var spanList = IntStream.of(0, tokens.size() - 1)
-            .mapToObj(tokens::get)
-            .map(t -> t.getSpan())
-            .toList();
-        var startSpan = spanList.get(0);
-        var endSpan = spanList.get(1);
-        return new StartEndSpans(startSpan, endSpan);
-    }
-
-    private static SourceChar newDoubleQuoteChar(SourceLocation location) {
-        return newSourceChar('"', location);
-    }
-
-    private static SourceChar newBackSlashChar(SourceLocation location) {
-        return newSourceChar('\\', location);
-    }
-
     private static SourceChar newSourceChar(char c, SourceLocation location) {
         return SourceChars.of(c, location.getColumn(), location.getLine());
-    }
-
-    private record StartEndSpans(
-        SourceSpan startSpan, SourceSpan endSpan) {
     }
 }
