@@ -12,6 +12,7 @@ import com.maroontress.clione.macro.DirectiveWithinMacroArgumentsException;
 import com.maroontress.clione.macro.InvalidPreprocessingTokenException;
 import com.maroontress.clione.macro.InvalidVariadicArgumentException;
 import com.maroontress.clione.macro.MacroArgumentException;
+import com.maroontress.clione.macro.MissingMacroNameException;
 import com.maroontress.clione.macro.UnterminatedMacroInvocationException;
 import static com.maroontress.clione.Parsers.pair;
 import static com.maroontress.clione.Parsers.test;
@@ -1716,5 +1717,47 @@ public final class PreprocessorTest {
                 pair("\"0\"", TokenType.STRING),
                 pair("\n", TokenType.DELIMITER));
         test(s, list);
+    }
+
+    @Test
+    public void missingDefineMacroName() {
+        var s = """
+            #define
+            """;
+        var m = "L1:8: error: macro name missing";
+        test(s, parser -> {
+            var e = assertThrows(MissingMacroNameException.class, parser::next);
+            assertThat(e.getMessage(), is(m));
+            var token = e.getCauseToken();
+            assertThat(token.getValue(), is("define"));
+            var span = token.getSpan();
+            var start = span.getStart();
+            var end = span.getEnd();
+            assertThat(start.getLine(), is(1));
+            assertThat(start.getColumn(), is(2));
+            assertThat(end.getLine(), is(1));
+            assertThat(end.getColumn(), is(7));
+        });
+    }
+
+    @Test
+    public void missingUndefMacroName() {
+        var s = """
+            #undef
+            """;
+        var m = "L1:7: error: macro name missing";
+        test(s, parser -> {
+            var e = assertThrows(MissingMacroNameException.class, parser::next);
+            assertThat(e.getMessage(), is(m));
+            var token = e.getCauseToken();
+            assertThat(token.getValue(), is("undef"));
+            var span = token.getSpan();
+            var start = span.getStart();
+            var end = span.getEnd();
+            assertThat(start.getLine(), is(1));
+            assertThat(start.getColumn(), is(2));
+            assertThat(end.getLine(), is(1));
+            assertThat(end.getColumn(), is(6));
+        });
     }
 }

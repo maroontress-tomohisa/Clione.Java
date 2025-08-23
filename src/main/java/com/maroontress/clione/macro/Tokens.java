@@ -25,6 +25,13 @@ public final class Tokens {
     private Tokens() {
     }
 
+    /**
+        Finds the first significant token in a list of tokens.
+        @param tokenList The list of tokens to search.
+        @param startIndex The starting index of the search.
+        @return An optional containing the first significant token and its
+                index, or an empty optional if no significant token is found.
+    */
     public static Optional<TokenIndexPair> findSignificantToken(
             List<Token> tokenList, int startIndex) {
         var size = tokenList.size();
