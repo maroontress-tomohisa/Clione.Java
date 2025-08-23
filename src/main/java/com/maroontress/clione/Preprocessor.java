@@ -84,7 +84,7 @@ public final class Preprocessor implements LexicalParser {
     }
 
     @Override
-    public Optional<Token> next() throws IOException, PreprocessException {
+    public Optional<Token> next() throws IOException {
         for (;;) {
             var maybeMacroToken = nextMacroToken();
             if (maybeMacroToken.isEmpty()) {
@@ -103,7 +103,7 @@ public final class Preprocessor implements LexicalParser {
     }
 
     private Optional<Token> handleToken(Optional<Token> maybeToken)
-            throws IOException, PreprocessException {
+            throws IOException {
         if (!maybeToken.isPresent()) {
             return maybeToken;
         }
@@ -507,10 +507,8 @@ public final class Preprocessor implements LexicalParser {
 
         @param token The directive token.
         @throws IOException If an I/O error occurs.
-        @throws PreprocessException If an error occurs during preprocessing.
     */
-    public void updateMacrosFromDirective(Token token)
-            throws IOException, PreprocessException {
+    public void updateMacrosFromDirective(Token token) throws IOException {
         var children = token.getChildren();
         if (children.isEmpty()) {
             return;
@@ -544,12 +542,11 @@ public final class Preprocessor implements LexicalParser {
             - getMacroBody
     */
     private void handleDefine(List<Token> directiveTokens,
-            int directiveNameIndex) throws IOException, PreprocessException {
+            int directiveNameIndex) throws IOException {
         var maybePair = Tokens.findSignificantToken(
                 directiveTokens, directiveNameIndex + 1);
         if (maybePair.isEmpty()) {
-            throw new MissingMacroNameException(
-                directiveTokens.get(directiveNameIndex));
+            throw new MissingMacroNameException(directiveTokens.getLast());
         }
         var pair = maybePair.get();
         var macroNameToken = pair.token();
@@ -755,8 +752,7 @@ public final class Preprocessor implements LexicalParser {
         var maybeNamePair = Tokens.findSignificantToken(
                 directiveTokens, directiveNameIndex + 1);
         if (maybeNamePair.isEmpty()) {
-            throw new MissingMacroNameException(
-                directiveTokens.get(directiveNameIndex));
+            throw new MissingMacroNameException(directiveTokens.getLast());
         }
         var namePair = maybeNamePair.get();
         var macroNameToken = namePair.token();
@@ -774,8 +770,7 @@ public final class Preprocessor implements LexicalParser {
         the identifier is a macro to be expanded.
         @throws IOException If an I/O error occurs.
     */
-    private Optional<Token> handleIdentifier(Token token)
-            throws IOException, PreprocessException {
+    private Optional<Token> handleIdentifier(Token token) throws IOException {
         var name = token.getValue();
         var m = macros.get(name);
         if (m == null) {

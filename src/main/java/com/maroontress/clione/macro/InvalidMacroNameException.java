@@ -21,7 +21,6 @@ public final class InvalidMacroNameException extends PreprocessException {
     private static String newMessage(final Token causeToken) {
         var start = causeToken.getSpan().getStart();
         return String.format(
-            "L%d:%d: error: macro name must be an identifier",
-            start.getLine(), start.getColumn());
+            "%s: error: macro name must be an identifier", start);
     }
 }

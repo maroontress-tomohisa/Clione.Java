@@ -19,9 +19,7 @@ public final class MissingMacroNameException extends PreprocessException {
     }
 
     private static String newMessage(final Token causeToken) {
-        var end = causeToken.getSpan().getEnd();
-        return String.format(
-            "L%d:%d: error: macro name missing",
-            end.getLine(), end.getColumn() + 1);
+        var start = causeToken.getSpan().getStart();
+        return String.format("%s: error: macro name missing", start);
     }
 }

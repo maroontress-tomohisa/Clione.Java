@@ -8,9 +8,11 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import com.maroontress.clione.macro.InvalidConcatenationOperatorException;
+import com.maroontress.clione.macro.InvalidMacroNameException;
 import com.maroontress.clione.macro.InvalidStringizingOperatorException;
 import com.maroontress.clione.macro.MissingCommaException;
 import com.maroontress.clione.macro.MissingIdentifierException;
+import com.maroontress.clione.macro.MissingMacroNameException;
 import com.maroontress.clione.macro.MissingParenException;
 import static com.maroontress.clione.Parsers.pair;
 import static com.maroontress.clione.Parsers.test;
@@ -338,6 +340,78 @@ public final class DefineErrorTest {
             assertThat(start.getColumn(), is(22));
             assertThat(end.getLine(), is(1));
             assertThat(end.getColumn(), is(24));
+        });
+    }
+
+    @Test
+    public void missingDefineMacroName() {
+        var s = """
+            #define
+            """;
+        var m = "L1:8: error: macro name missing";
+        test(s, parser -> {
+            var e = assertThrows(MissingMacroNameException.class, parser::next);
+            assertThat(e.getMessage(), is(m));
+            var token = e.getCauseToken();
+            assertThat(token.getValue(), is("\n"));
+            assertThat(token.getType(), is(TokenType.DIRECTIVE_END));
+            var span = token.getSpan();
+            var start = span.getStart();
+            var end = span.getEnd();
+            assertThat(start.getLine(), is(1));
+            assertThat(start.getColumn(), is(8));
+            assertThat(end.getLine(), is(1));
+            assertThat(end.getColumn(), is(8));
+        });
+    }
+
+    @Test
+    public void missingUndefMacroName() {
+        var s = """
+            #undef
+            """;
+        var m = "L1:7: error: macro name missing";
+        test(s, parser -> {
+            var e = assertThrows(MissingMacroNameException.class, parser::next);
+            assertThat(e.getMessage(), is(m));
+            var token = e.getCauseToken();
+            assertThat(token.getValue(), is("\n"));
+            assertThat(token.getType(), is(TokenType.DIRECTIVE_END));
+            var span = token.getSpan();
+            var start = span.getStart();
+            var end = span.getEnd();
+            assertThat(start.getLine(), is(1));
+            assertThat(start.getColumn(), is(7));
+            assertThat(end.getLine(), is(1));
+            assertThat(end.getColumn(), is(7));
+        });
+    }
+
+    @Test
+    public void defineInvalidMacroName() {
+        var s = """
+            #define "FOO"
+            """;
+        var m = "L1:9: error: macro name must be an identifier";
+        test(s, parser -> {
+            var e = assertThrows(InvalidMacroNameException.class, parser::next);
+            assertThat(e.getMessage(), is(m));
+            var token = e.getCauseToken();
+            assertThat(token.getValue(), is("\"FOO\""));
+        });
+    }
+
+    @Test
+    public void undefInvalidMacroName() {
+        var s = """
+            #undef "FOO"
+            """;
+        var m = "L1:8: error: macro name must be an identifier";
+        test(s, parser -> {
+            var e = assertThrows(InvalidMacroNameException.class, parser::next);
+            assertThat(e.getMessage(), is(m));
+            var token = e.getCauseToken();
+            assertThat(token.getValue(), is("\"FOO\""));
         });
     }
 }
