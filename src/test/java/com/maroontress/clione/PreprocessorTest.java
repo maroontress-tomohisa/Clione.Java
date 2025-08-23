@@ -9,6 +9,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import com.maroontress.clione.macro.DirectiveWithinMacroArgumentsException;
+import com.maroontress.clione.macro.InvalidMacroNameException;
 import com.maroontress.clione.macro.InvalidPreprocessingTokenException;
 import com.maroontress.clione.macro.InvalidVariadicArgumentException;
 import com.maroontress.clione.macro.MacroArgumentException;
@@ -1758,6 +1759,34 @@ public final class PreprocessorTest {
             assertThat(start.getColumn(), is(2));
             assertThat(end.getLine(), is(1));
             assertThat(end.getColumn(), is(6));
+        });
+    }
+
+    @Test
+    public void defineInvalidMacroName() {
+        var s = """
+            #define "FOO"
+            """;
+        var m = "L1:9: error: macro name must be an identifier";
+        test(s, parser -> {
+            var e = assertThrows(InvalidMacroNameException.class, parser::next);
+            assertThat(e.getMessage(), is(m));
+            var token = e.getCauseToken();
+            assertThat(token.getValue(), is("\"FOO\""));
+        });
+    }
+
+    @Test
+    public void undefInvalidMacroName() {
+        var s = """
+            #undef "FOO"
+            """;
+        var m = "L1:8: error: macro name must be an identifier";
+        test(s, parser -> {
+            var e = assertThrows(InvalidMacroNameException.class, parser::next);
+            assertThat(e.getMessage(), is(m));
+            var token = e.getCauseToken();
+            assertThat(token.getValue(), is("\"FOO\""));
         });
     }
 }

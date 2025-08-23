@@ -2,6 +2,7 @@ package com.maroontress.clione;
 
 import com.maroontress.clione.macro.FunctionLikeMacro;
 import com.maroontress.clione.macro.InvalidConcatenationOperatorException;
+import com.maroontress.clione.macro.InvalidMacroNameException;
 import com.maroontress.clione.macro.InvalidPreprocessingTokenException;
 import com.maroontress.clione.macro.InvalidStringizingOperatorException;
 import com.maroontress.clione.macro.Macro;
@@ -553,8 +554,7 @@ public final class Preprocessor implements LexicalParser {
         var pair = maybePair.get();
         var macroNameToken = pair.token();
         if (macroNameToken.getType() != TokenType.IDENTIFIER) {
-            // ここはエラーでは?
-            return;
+            throw new InvalidMacroNameException(macroNameToken);
         }
         var macroName = macroNameToken.getValue();
         var nameIndex = pair.index();
@@ -759,12 +759,11 @@ public final class Preprocessor implements LexicalParser {
                 directiveTokens.get(directiveNameIndex));
         }
         var namePair = maybeNamePair.get();
-        var macroNamToken = namePair.token();
-        if (macroNamToken.getType() != TokenType.IDENTIFIER) {
-            // ここはエラーでは?
-            return;
+        var macroNameToken = namePair.token();
+        if (macroNameToken.getType() != TokenType.IDENTIFIER) {
+            throw new InvalidMacroNameException(macroNameToken);
         }
-        macros.remove(macroNamToken.getValue());
+        macros.remove(macroNameToken.getValue());
     }
 
     /**
