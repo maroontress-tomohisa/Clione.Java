@@ -13,6 +13,7 @@ import com.maroontress.clione.macro.MissingParenException;
 import com.maroontress.clione.macro.ObjectLikeMacro;
 import com.maroontress.clione.macro.ParameterOriginatedToken;
 import com.maroontress.clione.macro.PreprocessException;
+import com.maroontress.clione.macro.TokenIndexPair;
 import com.maroontress.clione.macro.MacroToken;
 import com.maroontress.clione.macro.WrappedToken;
 import com.maroontress.clione.macro.Tokens;
@@ -381,7 +382,7 @@ public final class Preprocessor implements LexicalParser {
             var maybeRight = findFirstPastableToken(tokens, i + 1);
 
             if (maybeRight.isEmpty()) {
-                maybeLeft.map(left -> result.subList(left.index + 1, result.size()))
+                maybeLeft.map(left -> result.subList(left.index() + 1, result.size()))
                     .orElse(result)
                     .clear();
                 break;
@@ -389,42 +390,42 @@ public final class Preprocessor implements LexicalParser {
             var right = maybeRight.get();
             if (maybeLeft.isEmpty()) {
                 result.clear();
-                i = right.index;
+                i = right.index();
                 continue;
             }
             var left = maybeLeft.get();
-            result.subList(left.index, result.size()).clear();
+            result.subList(left.index(), result.size()).clear();
             var concatenated = Tokens.concatenate(
-                left.token, right.token, getReservedWords());
+                left.token(), right.token(), getReservedWords());
             if (concatenated.getType() == TokenType.UNKNOWN) {
                 throw new InvalidPreprocessingTokenException(
                     concatenated.getValue(),
                     List.copyOf(expandingMacros.values()));
             }
             result.add(WrappedToken.of(concatenated));
-            i = right.index + 1;
+            i = right.index() + 1;
         }
         return result;
     }
 
-    private Optional<TokenAndIndex> findLastPastableToken(
+    private Optional<TokenIndexPair> findLastPastableToken(
             List<WrappedToken> wrappedTokens) {
         for (var k = wrappedTokens.size() - 1; k >= 0; --k) {
             var token = wrappedTokens.get(k).unwrap();
             if (!Tokens.isDelimiterOrComment(token)) {
-                return Optional.of(new TokenAndIndex(token, k));
+                return Optional.of(new TokenIndexPair(token, k));
             }
         }
         return Optional.empty();
     }
 
-    private Optional<TokenAndIndex> findFirstPastableToken(
+    private Optional<TokenIndexPair> findFirstPastableToken(
             List<WrappedToken> wrappedTokens, int start) {
         var n = wrappedTokens.size();
         for (var k = start; k < n; ++k) {
             var token = wrappedTokens.get(k).unwrap();
             if (!Tokens.isDelimiterOrComment(token)) {
-                return Optional.of(new TokenAndIndex(token, k));
+                return Optional.of(new TokenIndexPair(token, k));
             }
         }
         return Optional.empty();
@@ -531,17 +532,31 @@ public final class Preprocessor implements LexicalParser {
         }
     }
 
+    /*
+        - updateMacrosFromDirective
+          - handleDefine
+            - parseFunctionLikeMacro
+            - findNextTokenAfter
+            - getMacroBody
+    */
     private void handleDefine(List<Token> directiveTokens,
             int directiveNameIndex) throws IOException {
-        int nameIndex = findFirstIdentifierAfter(directiveNameIndex,
-                directiveTokens);
-        if (nameIndex == -1) {
+        var maybePair = Tokens.findSignificantToken(
+                directiveTokens, directiveNameIndex + 1);
+        if (maybePair.isEmpty()) {
+            // ここはエラーでは?
             return;
         }
+        var pair = maybePair.get();
+        var macroNameToken = pair.token();
+        if (macroNameToken.getType() != TokenType.IDENTIFIER) {
+            // ここはエラーでは?
+            return;
+        }
+        var macroName = macroNameToken.getValue();
+        var nameIndex = pair.index();
 
-        var macroName = directiveTokens.get(nameIndex).getValue();
-
-        var nextTokenIndex = nameIndex + 1;
+        var nextTokenIndex = pair.index() + 1;
         if (nextTokenIndex < directiveTokens.size()) {
             var nextToken = directiveTokens.get(nextTokenIndex);
             if (Tokens.isOpenParenthesis(nextToken)) {
@@ -550,13 +565,10 @@ public final class Preprocessor implements LexicalParser {
             }
         }
 
-        int bodyIndex = findNextTokenAfter(nameIndex, directiveTokens);
-        List<Token> body;
-        if (bodyIndex == -1) {
-            body = new ArrayList<>();
-        } else {
-            body = getMacroBody(bodyIndex, directiveTokens);
-        }
+        var maybeBodyPair = Tokens.findSignificantToken(
+                directiveTokens, nameIndex + 1);
+        var body = maybeBodyPair.map(p -> getMacroBody(p.index(), directiveTokens))
+            .orElseGet(() -> List.<Token>of());
         macros.put(macroName, new ObjectLikeMacro(macroName, body));
     }
 
@@ -640,17 +652,13 @@ public final class Preprocessor implements LexicalParser {
             throw new MissingParenException(lastToken);
         }
 
-        var bodyIndex = findNextTokenAfter(currentIndex, tokens);
-        List<Token> body;
-        if (bodyIndex == -1) {
-            body = new ArrayList<>();
-        } else {
-            body = getMacroBody(bodyIndex, tokens);
-        }
-
+        var body = Tokens.findSignificantToken(tokens, currentIndex + 1)
+                .map(p -> getMacroBody(p.index(), tokens))
+                .orElseGet(() -> List.<Token>of());
         validateMacroBody(body, parameters, isVariadic);
-
-        macros.put(macroName, new FunctionLikeMacro(macroName, parameters, isVariadic, body));
+        var macro = new FunctionLikeMacro(
+                macroName, parameters, isVariadic, body);
+        macros.put(macroName, macro);
     }
     // CHECKSTYLE:ON CyclomaticComplexity
 
@@ -739,38 +747,20 @@ public final class Preprocessor implements LexicalParser {
         return new ArrayList<>();
     }
 
-    private int findFirstIdentifierAfter(int startIndex, List<Token> tokens) {
-        int index = startIndex + 1;
-        while (index < tokens.size()
-                && Tokens.isDelimiterOrComment(tokens.get(index))) {
-            index++;
-        }
-        if (index >= tokens.size()
-                || tokens.get(index).getType() != TokenType.IDENTIFIER) {
-            return -1;
-        }
-        return index;
-    }
-
-    private int findNextTokenAfter(int startIndex, List<Token> tokens) {
-        int index = startIndex + 1;
-        while (index < tokens.size()
-                && Tokens.isDelimiterOrComment(tokens.get(index))) {
-            index++;
-        }
-        if (index >= tokens.size()
-                || tokens.get(index).getType() == TokenType.DIRECTIVE_END) {
-            return -1;
-        }
-        return index;
-    }
-
     private void handleUndef(List<Token> directiveTokens, int directiveNameIndex) {
-        int nameIndex = findFirstIdentifierAfter(directiveNameIndex, directiveTokens);
-        if (nameIndex != -1) {
-            var macroName = directiveTokens.get(nameIndex).getValue();
-            macros.remove(macroName);
+        var maybeNamePair = Tokens.findSignificantToken(
+                directiveTokens, directiveNameIndex + 1);
+        if (maybeNamePair.isEmpty()) {
+            // ここはエラーでは?
+            return;
         }
+        var namePair = maybeNamePair.get();
+        var macroNamToken = namePair.token();
+        if (macroNamToken.getType() != TokenType.IDENTIFIER) {
+            // ここはエラーでは?
+            return;
+        };
+        macros.remove(macroNamToken.getValue());
     }
 
     /**
@@ -810,8 +800,5 @@ public final class Preprocessor implements LexicalParser {
     @FunctionalInterface
     private interface BodySupplier {
         List<Token> get() throws PreprocessException;
-    }
-
-    private record TokenAndIndex(Token token, int index) {
     }
 }

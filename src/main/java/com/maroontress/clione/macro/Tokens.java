@@ -25,6 +25,24 @@ public final class Tokens {
     private Tokens() {
     }
 
+    public static Optional<TokenIndexPair> findSignificantToken(
+            List<Token> tokenList, int startIndex) {
+        var size = tokenList.size();
+        var index = startIndex;
+        while (index < size
+                && Tokens.isDelimiterOrComment(tokenList.get(index))) {
+            ++index;
+        }
+        if (index >= size) {
+            return Optional.empty();
+        }
+        var token = tokenList.get(index);
+        if (token.getType() == TokenType.DIRECTIVE_END) {
+            return Optional.empty();
+        }
+        return Optional.of(new TokenIndexPair(token, index));
+    }
+
     /**
         Checks whether the given token is a delimiter or a comment.
 
