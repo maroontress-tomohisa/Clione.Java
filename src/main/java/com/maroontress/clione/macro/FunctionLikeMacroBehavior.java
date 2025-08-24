@@ -9,7 +9,8 @@ import com.maroontress.clione.Token;
 /**
     Defines the behavior of function-like macros.
 */
-public interface MacroBehavior {
+public interface FunctionLikeMacroBehavior {
+
     /**
         Returns the substitution mapping for the given macro and arguments.
 

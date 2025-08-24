@@ -2,7 +2,6 @@ package com.maroontress.clione.macro;
 
 import java.util.Optional;
 
-import com.maroontress.clione.Preprocessor.ExpansionVisitor;
 import com.maroontress.clione.Token;
 
 /**
@@ -33,8 +32,9 @@ public final class MacroEndMarker implements MacroToken {
         return Optional.of(name);
     }
 
+    /** {@inheritDoc} */
     @Override
-    public void expand(ExpansionVisitor visitor) {
+    public void expand(MacroExpansionVisitor visitor) {
         visitor.expandMacroEndMarker(this);
     }
 }

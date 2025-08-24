@@ -1,5 +1,6 @@
 package com.maroontress.clione;
 
+import com.maroontress.clione.macro.MacroExpansionVisitor;
 import com.maroontress.clione.macro.FunctionLikeMacro;
 import com.maroontress.clione.macro.InvalidConcatenationOperatorException;
 import com.maroontress.clione.macro.InvalidMacroNameException;
@@ -158,15 +159,14 @@ public final class Preprocessor implements LexicalParser {
     /**
         Expands a function-like macro.
 
-        @param macro The macro to be expanded.
+        @param macro The function-like macro to be expanded.
         @param token The token that triggered the macro expansion.
         @param args The arguments of the macro invocation.
         @return An empty optional.
         @throws PreprocessException If an error occurs during preprocessing.
     */
-    public Optional<Token> expandFunctionBasedMacro(Macro macro, Token token,
-            MacroArgument args)
-            throws PreprocessException {
+    public Optional<Token> expandFunctionBasedMacro(FunctionLikeMacro macro,
+            Token token, MacroArgument args) throws PreprocessException {
         return expandMacro(macro, token, () -> substitute(macro, token, args));
     }
 
@@ -207,8 +207,8 @@ public final class Preprocessor implements LexicalParser {
         @return The list of tokens after substitution.
         @throws PreprocessException if an error occurs during preprocessing.
     */
-    public List<Token> substitute(Macro macro, Token token, MacroArgument args)
-            throws PreprocessException {
+    public List<Token> substitute(FunctionLikeMacro macro, Token token,
+            MacroArgument args) throws PreprocessException {
         var mapping = macro.getSubstitutionMapping(args, this);
         var substituted = substituteParamsAndStringify(macro, mapping);
         var concatenated = concatenateTokens(substituted);
@@ -712,31 +712,12 @@ public final class Preprocessor implements LexicalParser {
     }
 
     /**
-        Visits macro tokens during expansion.
-    */
-    public interface ExpansionVisitor {
-        /**
-            Expands a macro end marker.
-
-            @param marker The macro end marker.
-        */
-        void expandMacroEndMarker(MacroEndMarker marker);
-        /**
-            Expands a wrapped token.
-
-            @param wrappedToken The wrapped token.
-            @throws PreprocessException If an error occurs during expansion.
-        */
-        void expandWrappedToken(WrappedToken wrappedToken) throws PreprocessException;
-    }
-
-    /**
         Expands macro tokens recursively.
     */
-    public final class Expander implements ExpansionVisitor {
+    public final class Expander implements MacroExpansionVisitor {
 
         private final List<WrappedToken> result = new ArrayList<>();
-        private final Deque<MacroToken> worklist;
+        private final Deque<MacroToken> workQueue;
 
         /**
             Constructs a new instance.
@@ -744,7 +725,7 @@ public final class Preprocessor implements LexicalParser {
             @param tokens The list of tokens to expand.
         */
         public Expander(List<WrappedToken> tokens) {
-            this.worklist = new ArrayDeque<>(tokens);
+            this.workQueue = new ArrayDeque<>(tokens);
         }
 
         /**
@@ -754,8 +735,8 @@ public final class Preprocessor implements LexicalParser {
             @throws PreprocessException If an error occurs during expansion.
         */
         public List<WrappedToken> apply() throws PreprocessException {
-            while (!worklist.isEmpty()) {
-                var macroToken = worklist.removeFirst();
+            while (!workQueue.isEmpty()) {
+                var macroToken = workQueue.removeFirst();
                 macroToken.expand(this);
             }
             return result;
@@ -799,10 +780,10 @@ public final class Preprocessor implements LexicalParser {
         public void expandObjectLikeMacro(Token token, Macro macro) {
             var name = macro.name();
             expandingMacros.put(name, token);
-            worklist.addFirst(new MacroEndMarker(name));
+            workQueue.addFirst(new MacroEndMarker(name));
             var body = macro.body();
             for (var i = body.size() - 1; i >= 0; --i) {
-                worklist.addFirst(new ParameterOriginatedToken(body.get(i)));
+                workQueue.addFirst(new ParameterOriginatedToken(body.get(i)));
             }
         }
 
@@ -816,7 +797,7 @@ public final class Preprocessor implements LexicalParser {
         public void expandFunctionLikeMacro(
                 WrappedToken wrappedToken, FunctionLikeMacro macro)
                 throws PreprocessException {
-            var openParenOpt = lookAheadForParen(worklist);
+            var openParenOpt = lookAheadForParen(workQueue);
             if (openParenOpt.isEmpty()) {
                 result.add(wrappedToken);
                 return;
@@ -824,16 +805,16 @@ public final class Preprocessor implements LexicalParser {
             var openParen = openParenOpt.get();
             // We need to find the opening parenthesis and remove it.
             // The lookAheadForParen just peeks.
-            while (!worklist.isEmpty()) {
-                var t = worklist.removeFirst();
+            while (!workQueue.isEmpty()) {
+                var t = workQueue.removeFirst();
                 if (t.getToken().isPresent()
                         && t.getToken().get().equals(openParen)) {
                     break;
                 }
             }
             var builder = macro.newArgumentBuilder(openParen);
-            while (!worklist.isEmpty()) {
-                var next = worklist.removeFirst();
+            while (!workQueue.isEmpty()) {
+                var next = workQueue.removeFirst();
                 var nextToken = next.getToken().orElse(null);
                 if (nextToken != null && builder.addToken(nextToken)) {
                     // Found closing paren
@@ -845,9 +826,9 @@ public final class Preprocessor implements LexicalParser {
             var args = builder.build();
             var substituted = substitute(macro, token, args);
             expandingMacros.put(name, token);
-            worklist.addFirst(new MacroEndMarker(name));
+            workQueue.addFirst(new MacroEndMarker(name));
             for (var i = substituted.size() - 1; i >= 0; --i) {
-                worklist.addFirst(
+                workQueue.addFirst(
                     new ParameterOriginatedToken(substituted.get(i)));
             }
         }

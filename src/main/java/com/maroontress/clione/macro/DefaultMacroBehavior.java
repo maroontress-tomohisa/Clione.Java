@@ -9,7 +9,7 @@ import com.maroontress.clione.Token;
 /**
     The default macro behavior for function-like macros.
 */
-public final class DefaultMacroBehavior implements MacroBehavior {
+public final class DefaultMacroBehavior implements FunctionLikeMacroBehavior {
 
     /**
         Creates a new instance.

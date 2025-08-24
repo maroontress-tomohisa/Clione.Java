@@ -1,7 +1,6 @@
 package com.maroontress.clione.macro;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import com.maroontress.clione.Preprocessor;
@@ -34,12 +33,6 @@ public final class ObjectLikeMacro implements Macro {
 
     /** {@inheritDoc} */
     @Override
-    public List<String> parameters() {
-        return List.of();
-    }
-
-    /** {@inheritDoc} */
-    @Override
     public List<Token> body() {
         return body;
     }
@@ -49,13 +42,5 @@ public final class ObjectLikeMacro implements Macro {
     public Optional<Token> apply(Preprocessor preprocessor, Token token)
             throws PreprocessException {
         return preprocessor.expandObjectBasedMacro(this, token);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public Map<String, List<Token>> getSubstitutionMapping(
-            MacroArgument args, Preprocessor preprocessor)
-            throws PreprocessException {
-        return getDefaultSubstitutionMapping(args, preprocessor);
     }
 }

@@ -2,7 +2,6 @@ package com.maroontress.clione.macro;
 
 import java.util.Optional;
 
-import com.maroontress.clione.Preprocessor.ExpansionVisitor;
 import com.maroontress.clione.Token;
 
 /**
@@ -49,8 +48,10 @@ public abstract class AbstractWrappedToken implements WrappedToken {
     @Override
     public abstract boolean isOriginatingFromParameter();
 
+    /** {@inheritDoc} */
     @Override
-    public final void expand(ExpansionVisitor visitor) throws PreprocessException {
+    public final void expand(MacroExpansionVisitor visitor)
+            throws PreprocessException {
         visitor.expandWrappedToken(this);
     }
 }

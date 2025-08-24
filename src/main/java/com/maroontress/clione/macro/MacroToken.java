@@ -2,7 +2,6 @@ package com.maroontress.clione.macro;
 
 import java.util.Optional;
 
-import com.maroontress.clione.Preprocessor.ExpansionVisitor;
 import com.maroontress.clione.Token;
 
 /**
@@ -30,5 +29,5 @@ public interface MacroToken {
         @param visitor The visitor to use for expansion.
         @throws PreprocessException If an error occurs during expansion.
     */
-    void expand(ExpansionVisitor visitor) throws PreprocessException;
+    void expand(MacroExpansionVisitor visitor) throws PreprocessException;
 }

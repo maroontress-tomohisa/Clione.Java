@@ -16,15 +16,15 @@ import com.maroontress.clione.TokenType;
 */
 public final class FunctionLikeMacro implements Macro {
 
-    private static final MacroBehavior DEFAULT_BEHAVIOR
+    private static final FunctionLikeMacroBehavior DEFAULT_BEHAVIOR
         = new DefaultMacroBehavior();
-    private static final MacroBehavior VARIADIC_BEHAVIOR
+    private static final FunctionLikeMacroBehavior VARIADIC_BEHAVIOR
         = new VariadicMacroBehavior();
 
     private final String name;
     private final List<String> parameters;
     private final List<Token> body;
-    private final MacroBehavior behavior;
+    private final FunctionLikeMacroBehavior behavior;
 
     /**
         Creates a new instance.
@@ -55,12 +55,6 @@ public final class FunctionLikeMacro implements Macro {
 
     /** {@inheritDoc} */
     @Override
-    public List<String> parameters() {
-        return parameters;
-    }
-
-    /** {@inheritDoc} */
-    @Override
     public List<Token> body() {
         return body;
     }
@@ -75,8 +69,10 @@ public final class FunctionLikeMacro implements Macro {
             : preprocessor.expandFunctionBasedMacro(this, token, maybeArguments.get());
     }
 
-    /** {@inheritDoc} */
-    @Override
+    public List<String> parameters() {
+        return parameters;
+    }
+
     public Map<String, List<Token>> getSubstitutionMapping(
             MacroArgument args, Preprocessor preprocessor)
             throws PreprocessException {
@@ -152,6 +148,37 @@ public final class FunctionLikeMacro implements Macro {
     */
     public MacroArgumentBuilder newArgumentBuilder(Token openParen) {
         return behavior.createArgumentBuilder(this, openParen);
+    }
+
+    /**
+        Returns the default substitution mapping from the given macro
+        arguments.
+
+        @param args The list of macro arguments.
+        @param preprocessor The preprocessor instance.
+        @return The substitution mapping.
+        @throws MacroArgumentException if the number of arguments is incorrect.
+    */
+    public Map<String, List<Token>> getDefaultSubstitutionMapping(
+            MacroArgument args, Preprocessor preprocessor)
+            throws MacroArgumentException {
+        var params = parameters();
+        var expectedSize = params.size();
+        var actualSize = args.size();
+        if (expectedSize != actualSize) {
+            var causeToken = expectedSize > actualSize
+                    ? args.getCloseParen()
+                    : args.getComma(expectedSize - 1);
+            var expandingTokens = List.copyOf(
+                    preprocessor.getExpandingMacros().values());
+            throw new MacroArgumentException(
+                    causeToken, expectedSize, actualSize, expandingTokens);
+        }
+        var mapping = new HashMap<String, List<Token>>();
+        for (var k = 0; k < expectedSize; ++k) {
+            mapping.put(params.get(k), args.get(k));
+        }
+        return mapping;
     }
 
     /**

@@ -9,7 +9,7 @@ import com.maroontress.clione.Token;
 /**
     The macro behavior for variadic function-like macros.
 */
-public final class VariadicMacroBehavior implements MacroBehavior {
+public final class VariadicMacroBehavior implements FunctionLikeMacroBehavior {
 
     /**
         Creates a new instance.
