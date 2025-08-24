@@ -16,6 +16,7 @@ public abstract class MacroArgumentBuilder {
     private static Map<String, Integer> parenLevelMap = newParenLevelMap();
     private final FunctionLikeMacro macro;
     private final List<List<Token>> args = new ArrayList<>();
+    private final List<Token> commaList = new ArrayList<>();
     private final List<Token> currentArg = new ArrayList<>();
     private final Token openParen;
     private Token closeParen;
@@ -86,7 +87,8 @@ public abstract class MacroArgumentBuilder {
         if (macro.parameters().size() == 1 && builtArgs.isEmpty()) {
             builtArgs.add(List.of());
         }
-        return new MacroArgument(getOpenParen(), builtArgs, getCloseParen());
+        return new MacroArgument(
+                getOpenParen(), builtArgs, commaList, getCloseParen());
     }
 
     /**
@@ -116,6 +118,7 @@ public abstract class MacroArgumentBuilder {
                 && token.getValue().equals(",")
                 && parenLevel == 1) {
             args.add(List.copyOf(currentArg));
+            commaList.add(token);
             currentArg.clear();
             return;
         }

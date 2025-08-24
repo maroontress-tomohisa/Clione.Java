@@ -11,6 +11,7 @@ public final class MacroArgument {
     private Token openParen;
     private Token closeParen;
     private List<List<Token>> argumentList;
+    private List<Token> commaList;
 
     /**
         Constructs a new instance.
@@ -23,9 +24,11 @@ public final class MacroArgument {
     public MacroArgument(
             Token openParen,
             List<List<Token>> argumentList,
+            List<Token> commaList,
             Token closeParen) {
         this.openParen = openParen;
         this.argumentList = argumentList;
+        this.commaList = commaList;
         this.closeParen = closeParen;
     }
 
@@ -46,6 +49,10 @@ public final class MacroArgument {
     */
     public List<Token> get(int index) {
         return argumentList.get(index);
+    }
+
+    public Token getComma(int index) {
+        return commaList.get(index);
     }
 
     /**

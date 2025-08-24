@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
 import com.maroontress.clione.Preprocessor;
@@ -128,6 +127,8 @@ public final class FunctionLikeMacro implements Macro {
             }
             var maybeToken = macroToken.getToken();
             if (!maybeToken.isPresent()) {
+                // ここには来ない。isPresent()がfalseになるのはMacroEndMarkerだけなので。
+                // ポリモーフィズムを使う。
                 continue;
             }
             var token = maybeToken.get();
@@ -148,36 +149,6 @@ public final class FunctionLikeMacro implements Macro {
         return behavior.createArgumentBuilder(this, openParen);
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        var that = (FunctionLikeMacro) o;
-        return Objects.equals(name, that.name)
-            && Objects.equals(parameters, that.parameters)
-            && Objects.equals(body, that.body)
-            && Objects.equals(behavior, that.behavior);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, parameters, body, behavior);
-    }
-
-    @Override
-    public String toString() {
-        return "FunctionLikeMacro{"
-            + "name='" + name + '\''
-            + ", parameters=" + parameters
-            + ", behavior=" + behavior.getClass().getSimpleName()
-            + ", body=" + body
-            + '}';
-    }
-
     Map<String, List<Token>> getVariadicSubstitutionMapping(
             MacroArgument args, Preprocessor preprocessor)
             throws PreprocessException {
@@ -185,8 +156,10 @@ public final class FunctionLikeMacro implements Macro {
         var expectedSize = params.size();
         var actualSize = args.size();
         if (expectedSize > actualSize) {
-            throw new MacroArgumentException(name(), expectedSize, actualSize,
-                    List.copyOf(preprocessor.getExpandingMacros().values()));
+            var expandingTokens = preprocessor.getExpandingMacros().values();
+            var closeParen = args.getCloseParen();
+            throw new MacroArgumentException(closeParen, expectedSize,
+                    actualSize, List.copyOf(expandingTokens));
         }
         if (params.size() > 0 && expectedSize == actualSize) {
             var expandingTokens = preprocessor.getExpandingMacros().values();

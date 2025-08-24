@@ -995,18 +995,30 @@ public final class PreprocessorTest {
             }
 
             var e = assertThrows(MacroArgumentException.class, parser::next);
-            assertThat(e.getMacroName(), is("ADD"));
+            var macroNameToken = e.getExpandingTokens().getFirst();
+            assertThat(macroNameToken.getValue(), is("ADD"));
+            {
+                var span = macroNameToken.getSpan();
+                var start = span.getStart();
+                var end = span.getEnd();
+                assertThat(start.getLine(), is(2));
+                assertThat(start.getColumn(), is(9));
+                assertThat(end.getLine(), is(2));
+                assertThat(end.getColumn(), is(11));
+            }
             assertThat(e.getExpected(), is(2));
             assertThat(e.getActual(), is(1));
             var token = e.getCauseToken();
-            assertThat(token.getValue(), is("ADD"));
-            var span = token.getSpan();
-            var start = span.getStart();
-            var end = span.getEnd();
-            assertThat(start.getLine(), is(2));
-            assertThat(start.getColumn(), is(9));
-            assertThat(end.getLine(), is(2));
-            assertThat(end.getColumn(), is(11));
+            assertThat(token.getValue(), is(")"));
+            {
+                var span = token.getSpan();
+                var start = span.getStart();
+                var end = span.getEnd();
+                assertThat(start.getLine(), is(2));
+                assertThat(start.getColumn(), is(14));
+                assertThat(end.getLine(), is(2));
+                assertThat(end.getColumn(), is(14));
+            }
         });
     }
 
@@ -1030,18 +1042,30 @@ public final class PreprocessorTest {
             }
 
             var e = assertThrows(MacroArgumentException.class, parser::next);
-            assertThat(e.getMacroName(), is("ADD"));
+            var macroNameToken = e.getExpandingTokens().getFirst();
+            assertThat(macroNameToken.getValue(), is("ADD"));
+            {
+                var span = macroNameToken.getSpan();
+                var start = span.getStart();
+                var end = span.getEnd();
+                assertThat(start.getLine(), is(2));
+                assertThat(start.getColumn(), is(9));
+                assertThat(end.getLine(), is(2));
+                assertThat(end.getColumn(), is(11));
+            }
             assertThat(e.getExpected(), is(2));
             assertThat(e.getActual(), is(3));
             var token = e.getCauseToken();
-            assertThat(token.getValue(), is("ADD"));
-            var span = token.getSpan();
-            var start = span.getStart();
-            var end = span.getEnd();
-            assertThat(start.getLine(), is(2));
-            assertThat(start.getColumn(), is(9));
-            assertThat(end.getLine(), is(2));
-            assertThat(end.getColumn(), is(11));
+            assertThat(token.getValue(), is(","));
+            {
+                var span = token.getSpan();
+                var start = span.getStart();
+                var end = span.getEnd();
+                assertThat(start.getLine(), is(2));
+                assertThat(start.getColumn(), is(16));
+                assertThat(end.getLine(), is(2));
+                assertThat(end.getColumn(), is(16));
+            }
         });
     }
 
@@ -1220,6 +1244,32 @@ public final class PreprocessorTest {
             assertThat(start.getColumn(), is(15));
             assertThat(end.getLine(), is(2));
             assertThat(end.getColumn(), is(15));
+        });
+    }
+
+    @Test
+    public void variadicMacroWithTooFewArguments() {
+        var s = """
+            #define LOG(stream, format, ...) printf(stream, format, __VA_ARGS__)
+            LOG(stdout);
+            """;
+        test(s, parser -> {
+            // Skips the tokens before "LOG":
+            // 1. #define LOG(format, ...) printf(format, __VA_ARGS__)
+            for (int i = 0; i < 1; i++) {
+                parser.next();
+            }
+
+            var e = assertThrows(MacroArgumentException.class, parser::next);
+            var token = e.getCauseToken();
+            assertThat(token.getValue(), is(")"));
+            var span = token.getSpan();
+            var start = span.getStart();
+            var end = span.getEnd();
+            assertThat(start.getLine(), is(2));
+            assertThat(start.getColumn(), is(11));
+            assertThat(end.getLine(), is(2));
+            assertThat(end.getColumn(), is(11));
         });
     }
 

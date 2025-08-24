@@ -2,7 +2,6 @@ package com.maroontress.clione.macro;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
 import com.maroontress.clione.Preprocessor;
@@ -53,31 +52,5 @@ public final class ObjectLikeMacro implements Macro {
             MacroArgument args, Preprocessor preprocessor)
             throws PreprocessException {
         return getDefaultSubstitutionMapping(args, preprocessor);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        var that = (ObjectLikeMacro) o;
-        return Objects.equals(name, that.name)
-            && Objects.equals(body, that.body);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, body);
-    }
-
-    @Override
-    public String toString() {
-        return "ObjectLikeMacro{"
-            + "name='" + name + '\''
-            + ", body=" + body
-            + '}';
     }
 }

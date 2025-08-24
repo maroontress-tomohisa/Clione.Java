@@ -174,10 +174,14 @@ public final class Tokens {
         var x = new Transcriber(source);
         try {
             var type = x.readToken();
-            if (type == null
-                    || type == TokenType.DIRECTIVE) {
-                return Optional.empty();
-            }
+            /*
+                TokenBuilder#toTokenString() doesn't return an empty string,
+                so we don't need the following check:
+
+                if (type == null) {
+                    return Optional.empty();
+                }
+            */
             var nextType = x.readToken();
             if (nextType != null) {
                 return Optional.empty();

@@ -12,9 +12,6 @@ public final class MacroArgumentException extends MacroExpansionException {
 
     private static final long serialVersionUID = 1L;
 
-    /** The name of the macro. */
-    private final String macroName;
-
     /** The expected number of arguments. */
     private final int expected;
 
@@ -24,40 +21,30 @@ public final class MacroArgumentException extends MacroExpansionException {
     /**
         Creates a new instance.
 
-        @param macroName The name of the macro.
+        @param causeToken The token that triggers this exception.
         @param expected The expected number of arguments.
         @param actual The actual number of arguments.
         @param expandingTokens the list of tokens that represents the macro
         expansion stack.
     */
-    public MacroArgumentException(String macroName,
+    public MacroArgumentException(Token causeToken,
             int expected,
             int actual,
             List<Token> expandingTokens) {
-        super(newMessage(macroName, expected, actual, expandingTokens),
-              expandingTokens);
-        this.macroName = macroName;
+        super(newMessage(causeToken, expected, actual, expandingTokens),
+                causeToken, expandingTokens);
         this.expected = expected;
         this.actual = actual;
     }
 
-    private static String newMessage(String macroName, int expected,
+    private static String newMessage(Token causeToken, int expected,
             int actual, List<Token> expandingTokens) {
         var manyOrFew = (actual > expected) ? "many" : "few";
         var format = "%s: error: too %s arguments for macro '%s' "
             + "(expected %d, but got %d)";
-        var causeToken = expandingTokens.get(0);
+        var macroName = expandingTokens.get(0);
         return String.format(format, causeToken.getSpan().getStart(),
-            manyOrFew, macroName, expected, actual);
-    }
-
-    /**
-        Returns the name of the macro.
-
-        @return The name of the macro.
-    */
-    public String getMacroName() {
-        return macroName;
+            manyOrFew, macroName.getValue(), expected, actual);
     }
 
     /**

@@ -59,7 +59,8 @@ public interface Macro {
             Preprocessor preprocessor) throws PreprocessException;
 
     /**
-        Returns the default substitution mapping from the given macro arguments.
+        Returns the default substitution mapping from the given macro
+        arguments.
 
         @param args The list of macro arguments.
         @param preprocessor The preprocessor instance.
@@ -73,8 +74,13 @@ public interface Macro {
         var expectedSize = params.size();
         var actualSize = args.size();
         if (expectedSize != actualSize) {
-            throw new MacroArgumentException(name(), expectedSize, actualSize,
-                    List.copyOf(preprocessor.getExpandingMacros().values()));
+            var causeToken = expectedSize > actualSize
+                    ? args.getCloseParen()
+                    : args.getComma(expectedSize - 1);
+            var expandingTokens = List.copyOf(
+                    preprocessor.getExpandingMacros().values());
+            throw new MacroArgumentException(
+                    causeToken, expectedSize, actualSize, expandingTokens);
         }
         var mapping = new HashMap<String, List<Token>>();
         for (var k = 0; k < expectedSize; ++k) {
