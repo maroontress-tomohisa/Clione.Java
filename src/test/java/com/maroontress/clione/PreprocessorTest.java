@@ -63,6 +63,47 @@ public final class PreprocessorTest {
     }
 
     @Test
+    public void functionLikeMacroArgumentNotExpanded() {
+        var s = """
+            #define FOO(x) (x)
+            #define BAR(x) (x)
+            BAR(FOO)
+            """;
+        var defineFoo = List.of(
+                pair("define", TokenType.DIRECTIVE_NAME),
+                pair(" ", TokenType.DELIMITER),
+                pair("FOO", TokenType.IDENTIFIER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("x", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("x", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair("\n", TokenType.DIRECTIVE_END));
+        var defineBar = List.of(
+                pair("define", TokenType.DIRECTIVE_NAME),
+                pair(" ", TokenType.DELIMITER),
+                pair("BAR", TokenType.IDENTIFIER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("x", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("x", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair("\n", TokenType.DIRECTIVE_END));
+        var list = List.of(
+                pair("#", TokenType.DIRECTIVE, defineFoo),
+                pair("#", TokenType.DIRECTIVE, defineBar),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("FOO", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair("\n", TokenType.DELIMITER));
+        test(s, list);
+    }
+
+    @Test
     public void concatenationWithEmptyArgument() {
         var s = """
             #define CAT(a,b) a ## b

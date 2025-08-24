@@ -69,24 +69,10 @@ public final class FunctionLikeMacro implements Macro {
             : preprocessor.expandFunctionBasedMacro(this, token, maybeArguments.get());
     }
 
-    /**
-        Gets the list of parameter names.
-
-        @return The list of parameter names.
-    */
     public List<String> parameters() {
         return parameters;
     }
 
-    /**
-        Gets the substitution mapping from the given macro arguments.
-
-        @param args The macro arguments.
-        @param preprocessor The preprocessor instance.
-        @return The substitution mapping from parameter names to token lists.
-        @throws PreprocessException If a preprocessor directive is found
-        within the macro arguments.
-    */
     public Map<String, List<Token>> getSubstitutionMapping(
             MacroArgument args, Preprocessor preprocessor)
             throws PreprocessException {
