@@ -89,6 +89,29 @@ public final class DefineErrorTest {
     }
 
     @Test
+    public void invalidStringizingOperatorAtEndOfLine() {
+        var s = """
+            #define FOO(x) #
+            """;
+        var m = """
+            L1:17: error: '#' is not followed by a macro parameter""";
+        test(s, parser -> {
+            var e = assertThrows(InvalidStringizingOperatorException.class,
+                    parser::next);
+            assertThat(e.getMessage(), is(m));
+            var token = e.getCauseToken();
+            assertThat(token.getValue(), is("\n"));
+            var span = token.getSpan();
+            var start = span.getStart();
+            var end = span.getEnd();
+            assertThat(start.getLine(), is(1));
+            assertThat(start.getColumn(), is(17));
+            assertThat(end.getLine(), is(1));
+            assertThat(end.getColumn(), is(17));
+        });
+    }
+
+    @Test
     public void missingCommaInMacroParameterList() {
         var s = """
             #define FOO(a b)

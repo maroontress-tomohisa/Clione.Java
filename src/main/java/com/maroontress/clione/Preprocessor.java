@@ -496,11 +496,12 @@ public final class Preprocessor implements LexicalParser {
     private void parseFunctionLikeMacro(List<Token> tokens, int nameIndex)
             throws PreprocessException {
         var macroName = tokens.get(nameIndex).getValue();
+        var directiveEnd = tokens.getLast();
         var parameters = new ArrayList<String>();
         var currentIndex = nameIndex + 2;
         var isVariadic = false;
         var closingParenFound = false;
-        Token lastToken = tokens.get(nameIndex);
+        var lastToken = tokens.get(nameIndex);
 
         var state = ParameterParseState.EXPECT_IDENTIFIER;
         var firstParam = true;
@@ -575,15 +576,15 @@ public final class Preprocessor implements LexicalParser {
         var body = Tokens.findSignificantToken(tokens, currentIndex + 1)
                 .map(p -> getMacroBody(p.index(), tokens))
                 .orElseGet(() -> List.<Token>of());
-        validateMacroBody(body, parameters, isVariadic);
+        validateMacroBody(body, directiveEnd, parameters, isVariadic);
         var macro = new FunctionLikeMacro(
                 macroName, parameters, isVariadic, body);
         macros.put(macroName, macro);
     }
     // CHECKSTYLE:ON CyclomaticComplexity
 
-    private void validateMacroBody(
-            List<Token> body, List<String> parameters, boolean isVariadic)
+    private void validateMacroBody(List<Token> body, Token directiveEnd,
+            List<String> parameters, boolean isVariadic)
             throws PreprocessException {
         if (!body.isEmpty()) {
             for (var token : body) {
@@ -606,12 +607,12 @@ public final class Preprocessor implements LexicalParser {
                 break;
             }
         }
-        validateStringizingOperators(body, parameters, isVariadic);
+        validateStringizingOperators(body, directiveEnd, parameters, isVariadic);
     }
 
     private void validateStringizingOperators(
-            List<Token> body, List<String> parameters, boolean isVariadic)
-            throws PreprocessException {
+            List<Token> body, Token directiveEnd, List<String> parameters,
+            boolean isVariadic) throws PreprocessException {
         var isValid = newStringizingOperandValidator(parameters, isVariadic);
         for (var i = 0; i < body.size(); ++i) {
             var token = body.get(i);
@@ -624,7 +625,7 @@ public final class Preprocessor implements LexicalParser {
                 ++nextTokenIndex;
             }
             if (nextTokenIndex >= body.size()) {
-                throw new InvalidStringizingOperatorException(token);
+                throw new InvalidStringizingOperatorException(directiveEnd);
             }
             var nextToken = body.get(nextTokenIndex);
             if (!isValid.test(nextToken)) {
