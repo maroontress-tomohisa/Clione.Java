@@ -47,21 +47,25 @@ public final class FunctionLikeMacro implements Macro {
             : DEFAULT_BEHAVIOR;
     }
 
+    /** {@inheritDoc} */
     @Override
     public String name() {
         return name;
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<String> parameters() {
         return parameters;
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<Token> body() {
         return body;
     }
 
+    /** {@inheritDoc} */
     @Override
     public Optional<Token> apply(Preprocessor preprocessor, Token token)
             throws IOException {
@@ -71,6 +75,7 @@ public final class FunctionLikeMacro implements Macro {
             : preprocessor.expandFunctionBasedMacro(this, token, maybeArguments.get());
     }
 
+    /** {@inheritDoc} */
     @Override
     public Map<String, List<Token>> getSubstitutionMapping(
             MacroArgument args, Preprocessor preprocessor)
@@ -149,7 +154,7 @@ public final class FunctionLikeMacro implements Macro {
         return behavior.createArgumentBuilder(this, openParen);
     }
 
-    Map<String, List<Token>> getVariadicSubstitutionMapping(
+    public Map<String, List<Token>> getVariadicSubstitutionMapping(
             MacroArgument args, Preprocessor preprocessor)
             throws PreprocessException {
         var params = parameters();

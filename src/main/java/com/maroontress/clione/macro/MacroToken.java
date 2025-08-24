@@ -2,6 +2,7 @@ package com.maroontress.clione.macro;
 
 import java.util.Optional;
 
+import com.maroontress.clione.Preprocessor.ExpansionVisitor;
 import com.maroontress.clione.Token;
 
 /**
@@ -23,11 +24,5 @@ public interface MacroToken {
     */
     Optional<String> getMacroEndName();
 
-    /**
-        Returns whether the token originates from a macro parameter.
-
-        @return {@code true} if the token originates from a macro parameter,
-        {@code false} otherwise.
-    */
-    boolean isOriginatingFromParameter();
+    void expand(ExpansionVisitor visitor) throws PreprocessException;
 }

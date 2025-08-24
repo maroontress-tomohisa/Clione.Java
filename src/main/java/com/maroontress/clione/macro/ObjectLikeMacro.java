@@ -26,27 +26,32 @@ public final class ObjectLikeMacro implements Macro {
         this.body = List.copyOf(body);
     }
 
+    /** {@inheritDoc} */
     @Override
     public String name() {
         return name;
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<String> parameters() {
         return List.of();
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<Token> body() {
         return body;
     }
 
+    /** {@inheritDoc} */
     @Override
     public Optional<Token> apply(Preprocessor preprocessor, Token token)
             throws PreprocessException {
         return preprocessor.expandObjectBasedMacro(this, token);
     }
 
+    /** {@inheritDoc} */
     @Override
     public Map<String, List<Token>> getSubstitutionMapping(
             MacroArgument args, Preprocessor preprocessor)

@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
     The preprocessor that handles macro definitions and substitutions.
@@ -211,97 +212,113 @@ public final class Preprocessor implements LexicalParser {
         var mapping = macro.getSubstitutionMapping(args, this);
         var substituted = substituteParamsAndStringify(macro, mapping);
         var concatenated = concatenateTokens(substituted);
-        var expanded = expandMarkedTokens(concatenated, macro, token);
-
-        var result = new ArrayList<Token>();
-        expanded.forEach(mt -> mt.getToken().ifPresent(result::add));
-        return result;
+        return expandMarkedTokens(concatenated).stream()
+                .map(WrappedToken::unwrap)
+                .collect(Collectors.toList());
     }
 
-    // CHECKSTYLE:OFF CyclomaticComplexity
-    private List<MacroToken> expandMarkedTokens(List<WrappedToken> tokens,
-            Macro parentMacro, Token parentToken) throws PreprocessException {
-        var result = new ArrayList<MacroToken>();
-        var worklist = new ArrayDeque<MacroToken>(tokens);
+    public interface ExpansionVisitor {
+        void expandMacroEndMarker(MacroEndMarker marker);
+        void expandWrappedToken(WrappedToken wrappedToken) throws PreprocessException;
+    }
 
-        while (!worklist.isEmpty()) {
-            var current = worklist.removeFirst();
-            if (current instanceof MacroEndMarker) {
-                current.getMacroEndName().ifPresent(expandingMacros::remove);
-                continue;
+    public final class Expander implements ExpansionVisitor {
+
+        private final List<WrappedToken> result = new ArrayList<>();
+        private final Deque<MacroToken> worklist; 
+
+        public Expander(List<WrappedToken> tokens) {
+            this.worklist = new ArrayDeque<>(tokens);
+        }
+
+        public List<WrappedToken> apply() throws PreprocessException {
+            while (!worklist.isEmpty()) {
+                var macroToken = worklist.removeFirst();
+                macroToken.expand(this);
             }
+            return result;
+        }
 
-            var maybeToken = current.getToken();
-            if (maybeToken.isEmpty()) {
-                continue;
-            }
-            var token = maybeToken.get();
+        public void expandMacroEndMarker(MacroEndMarker marker) {
+            marker.getMacroEndName().ifPresent(expandingMacros::remove);
+        }
 
-            if (!current.isOriginatingFromParameter()
+        public void expandWrappedToken(WrappedToken wrappedToken) throws PreprocessException {
+            var token = wrappedToken.unwrap();
+            if (!wrappedToken.isOriginatingFromParameter()
                     || token.getType() != TokenType.IDENTIFIER) {
-                result.add(current);
-                continue;
+                result.add(wrappedToken);
+                return;
             }
-
             var name = token.getValue();
             var macro = macros.get(name);
-
             if (macro == null || expandingMacros.containsKey(name)) {
-                result.add(current);
-                continue;
+                result.add(wrappedToken);
+                return;
             }
 
             if (macro instanceof FunctionLikeMacro) {
-                var openParenOpt = lookAheadForParen(worklist);
-                if (openParenOpt.isEmpty()) {
-                    result.add(current);
-                    continue;
-                }
-                var openParen = openParenOpt.get();
-                // We need to find the opening parenthesis and remove it.
-                // The lookAheadForParen just peeks.
-                while (!worklist.isEmpty()) {
-                    var t = worklist.removeFirst();
-                    if (t.getToken().isPresent()
-                            && t.getToken().get().equals(openParen)) {
-                        break;
-                    }
-                }
-
-                var fnMacro = (FunctionLikeMacro) macro;
-                var builder = fnMacro.newArgumentBuilder(openParen);
-
-                while (!worklist.isEmpty()) {
-                    var next = worklist.removeFirst();
-                    var nextToken = next.getToken().orElse(null);
-                    if (nextToken != null && builder.addToken(nextToken)) {
-                        break; // Found closing paren
-                    }
-                }
-
-                var args = builder.build();
-                var substituted = substitute(macro, token, args);
-                expandingMacros.put(name, token);
-                worklist.addFirst(new MacroEndMarker(name));
-                for (var i = substituted.size() - 1; i >= 0; --i) {
-                    worklist.addFirst(
-                        new ParameterOriginatedToken(substituted.get(i)));
-                }
+                expandFunctionLikeMacro(wrappedToken, (FunctionLikeMacro) macro);
             } else {
-                // expand the object-like macro
-                expandingMacros.put(name, token);
-                worklist.addFirst(new MacroEndMarker(name));
-                var body = macro.body();
-                for (var i = body.size() - 1; i >= 0; --i) {
-                    worklist.addFirst(
-                        new ParameterOriginatedToken(body.get(i)));
-                }
+                expandObjectLikeMacro(token, macro);
             }
         }
 
-        return result;
+        public void expandObjectLikeMacro(Token token, Macro macro) {
+            var name = macro.name();
+            expandingMacros.put(name, token);
+            worklist.addFirst(new MacroEndMarker(name));
+            var body = macro.body();
+            for (var i = body.size() - 1; i >= 0; --i) {
+                worklist.addFirst(new ParameterOriginatedToken(body.get(i)));
+            }
+        }
+
+        public void expandFunctionLikeMacro(
+                WrappedToken wrappedToken, FunctionLikeMacro macro)
+                throws PreprocessException {
+            var openParenOpt = lookAheadForParen(worklist);
+            if (openParenOpt.isEmpty()) {
+                result.add(wrappedToken);
+                return;
+            }
+            var openParen = openParenOpt.get();
+            // We need to find the opening parenthesis and remove it.
+            // The lookAheadForParen just peeks.
+            while (!worklist.isEmpty()) {
+                var t = worklist.removeFirst();
+                if (t.getToken().isPresent()
+                        && t.getToken().get().equals(openParen)) {
+                    break;
+                }
+            }
+            var builder = macro.newArgumentBuilder(openParen);
+            while (!worklist.isEmpty()) {
+                var next = worklist.removeFirst();
+                var nextToken = next.getToken().orElse(null);
+                if (nextToken != null && builder.addToken(nextToken)) {
+                    // Found closing paren
+                    break; 
+                }
+            }
+            var name = macro.name();
+            var token = wrappedToken.unwrap();
+            var args = builder.build();
+            var substituted = substitute(macro, token, args);
+            expandingMacros.put(name, token);
+            worklist.addFirst(new MacroEndMarker(name));
+            for (var i = substituted.size() - 1; i >= 0; --i) {
+                worklist.addFirst(
+                    new ParameterOriginatedToken(substituted.get(i)));
+            }
+        }
     }
-    // CHECKSTYLE:ON CyclomaticComplexity
+
+    private List<WrappedToken> expandMarkedTokens(List<WrappedToken> tokens)
+            throws PreprocessException {
+        var expander = new Expander(tokens);
+        return expander.apply();
+    }
 
     private List<WrappedToken> substituteParamsAndStringify(Macro macro,
             Map<String, List<Token>> mapping) throws PreprocessException {

@@ -21,6 +21,14 @@ public interface WrappedToken extends MacroToken {
     Token unwrap();
 
     /**
+        Returns whether the token originates from a macro parameter.
+
+        @return {@code true} if the token originates from a macro parameter,
+            {@code false} otherwise.
+    */
+    boolean isOriginatingFromParameter();
+
+    /**
         Creates a new {@code WrappedToken} instance from a given token.
 
         @param token The token to wrap.
