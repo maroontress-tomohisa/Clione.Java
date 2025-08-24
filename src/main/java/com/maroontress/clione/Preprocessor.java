@@ -4,6 +4,7 @@ import com.maroontress.clione.macro.MacroExpansionVisitor;
 import com.maroontress.clione.macro.FunctionLikeMacro;
 import com.maroontress.clione.macro.InvalidConcatenationOperatorException;
 import com.maroontress.clione.macro.InvalidMacroNameException;
+import com.maroontress.clione.macro.InvalidPreprocessingDirectiveException;
 import com.maroontress.clione.macro.InvalidPreprocessingTokenException;
 import com.maroontress.clione.macro.InvalidStringizingOperatorException;
 import com.maroontress.clione.macro.Macro;
@@ -12,6 +13,7 @@ import com.maroontress.clione.macro.MacroEndMarker;
 import com.maroontress.clione.macro.MissingCommaException;
 import com.maroontress.clione.macro.MissingIdentifierException;
 import com.maroontress.clione.macro.MissingParenException;
+import com.maroontress.clione.macro.MissingWhitespaceAfterMacroName;
 import com.maroontress.clione.macro.ObjectLikeMacro;
 import com.maroontress.clione.macro.ParameterOriginatedToken;
 import com.maroontress.clione.macro.MissingMacroNameException;
@@ -434,23 +436,26 @@ public final class Preprocessor implements LexicalParser {
             return;
         }
 
-        int directiveNameIndex = -1;
-        for (int i = 0; i < children.size(); i++) {
-            if (children.get(i).getType() == TokenType.DIRECTIVE_NAME) {
-                directiveNameIndex = i;
-                break;
-            }
-        }
-
-        if (directiveNameIndex == -1) {
+        var maybePair = Tokens.findSignificantToken(children, 0);
+        if (maybePair.isEmpty()) {
             return;
         }
 
-        var directiveName = children.get(directiveNameIndex).getValue();
+        var pair = maybePair.get();
+        var directiveNameToken = pair.token();
+
+        if (directiveNameToken.getType() != TokenType.DIRECTIVE_NAME) {
+            throw new InvalidPreprocessingDirectiveException(directiveNameToken);
+        }
+
+        var directiveNameIndex = pair.index();
+        var directiveName = directiveNameToken.getValue();
         if ("define".equals(directiveName)) {
             handleDefine(children, directiveNameIndex);
         } else if ("undef".equals(directiveName)) {
             handleUndef(children, directiveNameIndex);
+        } else {
+            throw new InvalidPreprocessingDirectiveException(directiveNameToken);
         }
     }
 
@@ -482,6 +487,10 @@ public final class Preprocessor implements LexicalParser {
             if (Tokens.isOpenParenthesis(nextToken)) {
                 parseFunctionLikeMacro(directiveTokens, nameIndex);
                 return;
+            }
+            if (!Tokens.isDelimiterOrComment(nextToken)
+                    && nextToken.getType() != TokenType.DIRECTIVE_END) {
+                throw new MissingWhitespaceAfterMacroName(nextToken);
             }
         }
 
