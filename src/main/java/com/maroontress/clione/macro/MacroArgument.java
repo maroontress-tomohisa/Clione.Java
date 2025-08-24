@@ -19,6 +19,7 @@ public final class MacroArgument {
         @param openParen The opening parenthesis of the argument list.
         @param argumentList The list of arguments. Each argument is a list of
         tokens.
+        @param commaList The list of commas that separate arguments.
         @param closeParen The closing parenthesis of the argument list.
     */
     public MacroArgument(
@@ -51,6 +52,12 @@ public final class MacroArgument {
         return argumentList.get(index);
     }
 
+    /**
+        Returns the comma token at the specified position in this list.
+
+        @param index The index of the comma token to return.
+        @return The comma token at the specified position in this list.
+    */
     public Token getComma(int index) {
         return commaList.get(index);
     }
