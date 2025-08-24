@@ -14,10 +14,35 @@ import com.maroontress.clione.macro.MissingCommaException;
 import com.maroontress.clione.macro.MissingIdentifierException;
 import com.maroontress.clione.macro.MissingMacroNameException;
 import com.maroontress.clione.macro.MissingParenException;
+import com.maroontress.clione.macro.MissingWhitespaceAfterMacroName;
+
 import static com.maroontress.clione.Parsers.pair;
 import static com.maroontress.clione.Parsers.test;
 
 public final class DefineErrorTest {
+
+    @Test
+    public void missingWhitespaceAfterMacroName() {
+        var s = """
+            #define FOO-1
+            """;
+        var m = """
+            L1:12: error: ISO C99 requires whitespace after the macro name""";
+        test(s, parser -> {
+            var e = assertThrows(MissingWhitespaceAfterMacroName.class,
+                    parser::next);
+            assertThat(e.getMessage(), is(m));
+            var token = e.getCauseToken();
+            assertThat(token.getValue(), is("-"));
+            var span = token.getSpan();
+            var start = span.getStart();
+            var end = span.getEnd();
+            assertThat(start.getLine(), is(1));
+            assertThat(start.getColumn(), is(12));
+            assertThat(end.getLine(), is(1));
+            assertThat(end.getColumn(), is(12));
+        });
+    }
 
     @Test
     public void invalidConcatenationOperatorAtStart() {

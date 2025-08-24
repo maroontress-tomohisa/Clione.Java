@@ -19,6 +19,40 @@ import static com.maroontress.clione.Parsers.test;
 public final class PreprocessorTest {
 
     @Test
+    public void doNothing() {
+        var s = """
+            #
+            """;
+        var d = List.of(pair("\n", TokenType.DIRECTIVE_END));
+        var list = List.of(pair("#", TokenType.DIRECTIVE, d));
+        test(s, list);
+    }
+
+    @Test
+    public void functionLikeMacroNoWhitespaceAfterMacroName() {
+        var s = """
+            #define FOO(x)-x
+            FOO(1)
+            """;
+        var defineFoo = List.of(
+                pair("define", TokenType.DIRECTIVE_NAME),
+                pair(" ", TokenType.DELIMITER),
+                pair("FOO", TokenType.IDENTIFIER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("x", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair("-", TokenType.OPERATOR),
+                pair("x", TokenType.IDENTIFIER),
+                pair("\n", TokenType.DIRECTIVE_END));
+        var list = List.of(
+                pair("#", TokenType.DIRECTIVE, defineFoo),
+                pair("-", TokenType.OPERATOR),
+                pair("1", TokenType.NUMBER),
+                pair("\n", TokenType.DELIMITER));
+        test(s, list);
+    }
+
+    @Test
     public void simpleMacro() {
         var s = """
             #define FOO 123

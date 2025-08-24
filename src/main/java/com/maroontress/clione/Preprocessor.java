@@ -587,24 +587,15 @@ public final class Preprocessor implements LexicalParser {
             List<String> parameters, boolean isVariadic)
             throws PreprocessException {
         if (!body.isEmpty()) {
-            for (var token : body) {
-                if (Tokens.isDelimiterOrComment(token)) {
-                    continue;
-                }
-                if (Tokens.isConcatenatingOperator(token)) {
-                    throw new InvalidConcatenationOperatorException(token, true);
-                }
-                break;
+            var firstToken = body.getFirst();
+            if (Tokens.isConcatenatingOperator(firstToken)) {
+                throw new InvalidConcatenationOperatorException(
+                        firstToken, true);
             }
-            for (var i = body.size() - 1; i >= 0; --i) {
-                var token = body.get(i);
-                if (Tokens.isDelimiterOrComment(token)) {
-                    continue;
-                }
-                if (Tokens.isConcatenatingOperator(token)) {
-                    throw new InvalidConcatenationOperatorException(token, false);
-                }
-                break;
+            var lastToken = body.getLast();
+            if (Tokens.isConcatenatingOperator(lastToken)) {
+                throw new InvalidConcatenationOperatorException(
+                        lastToken, false);
             }
         }
         validateStringizingOperators(body, directiveEnd, parameters, isVariadic);
