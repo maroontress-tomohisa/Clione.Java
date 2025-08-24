@@ -24,5 +24,11 @@ public interface MacroToken {
     */
     Optional<String> getMacroEndName();
 
+    /**
+        Expands this token using the specified visitor.
+
+        @param visitor The visitor to use for expansion.
+        @throws PreprocessException If an error occurs during expansion.
+    */
     void expand(ExpansionVisitor visitor) throws PreprocessException;
 }

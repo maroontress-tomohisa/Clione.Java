@@ -27,7 +27,7 @@ public abstract class AbstractWrappedToken implements WrappedToken {
         this.token = token;
     }
 
-    /** {@inheritdoc} */
+    /** {@inheritDoc} */
     @Override
     public final Optional<Token> getToken() {
         return Optional.of(token);

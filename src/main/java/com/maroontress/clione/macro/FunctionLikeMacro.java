@@ -154,6 +154,14 @@ public final class FunctionLikeMacro implements Macro {
         return behavior.createArgumentBuilder(this, openParen);
     }
 
+    /**
+        Creates a substitution mapping for a variadic macro invocation.
+
+        @param args The macro arguments.
+        @param preprocessor The preprocessor instance.
+        @return A map from parameter names to token lists.
+        @throws PreprocessException If the arguments are invalid.
+    */
     public Map<String, List<Token>> getVariadicSubstitutionMapping(
             MacroArgument args, Preprocessor preprocessor)
             throws PreprocessException {
