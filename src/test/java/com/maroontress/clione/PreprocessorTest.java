@@ -1767,4 +1767,37 @@ public final class PreprocessorTest {
                 pair("\n", TokenType.DELIMITER));
         test(s, list);
     }
+
+    @Test
+    public void functionLikeMacroWithParenthesizedArgument() {
+        var s = """
+            #define PRINT(x) printf x
+            PRINT(("%s", "hello"));
+            """;
+        var define = List.of(
+                pair("define", TokenType.DIRECTIVE_NAME),
+                pair(" ", TokenType.DELIMITER),
+                pair("PRINT", TokenType.IDENTIFIER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("x", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("printf", TokenType.IDENTIFIER),
+                pair(" ", TokenType.DELIMITER),
+                pair("x", TokenType.IDENTIFIER),
+                pair("\n", TokenType.DIRECTIVE_END));
+        var list = List.of(
+                pair("#", TokenType.DIRECTIVE, define),
+                pair("printf", TokenType.IDENTIFIER),
+                pair(" ", TokenType.DELIMITER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("\"%s\"", TokenType.STRING),
+                pair(",", TokenType.PUNCTUATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("\"hello\"", TokenType.STRING),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(";", TokenType.PUNCTUATOR),
+                pair("\n", TokenType.DELIMITER));
+        test(s, list);
+    }
 }
