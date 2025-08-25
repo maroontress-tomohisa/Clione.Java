@@ -1,6 +1,7 @@
 package com.maroontress.clione;
 
 import com.maroontress.clione.macro.MacroExpansionVisitor;
+import com.maroontress.clione.macro.MacroKeeper;
 import com.maroontress.clione.macro.FunctionLikeMacro;
 import com.maroontress.clione.macro.InvalidConcatenationOperatorException;
 import com.maroontress.clione.macro.InvalidMacroNameException;
@@ -28,8 +29,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -49,8 +48,9 @@ import java.util.stream.Collectors;
 public final class Preprocessor implements LexicalParser {
     // CHECKSTYLE:ON ClassDataAbstractionCoupling
 
-    private final Map<String, Token> expandingMacros = new LinkedHashMap<>();
-    private final Map<String, Macro> macros = new HashMap<>();
+    private final MacroKeeper keeper = new MacroKeeper();
+    // private final Map<String, Token> expandingMacros = new LinkedHashMap<>();
+    // private final Map<String, Macro> macros = new HashMap<>();
     private final LexicalParser parser;
     private Deque<MacroToken> tokenQueue = new ArrayDeque<>();
 
@@ -61,15 +61,6 @@ public final class Preprocessor implements LexicalParser {
     */
     public Preprocessor(LexicalParser parser) {
         this.parser = parser;
-    }
-
-    /**
-        Returns the map of macros that are currently being expanded.
-
-        @return The map of expanding macros.
-    */
-    public Map<String, Token> getExpandingMacros() {
-        return expandingMacros;
     }
 
     @Override
@@ -127,6 +118,10 @@ public final class Preprocessor implements LexicalParser {
         return parser.getReservedWords();
     }
 
+    public List<Token> getExpandingChain() {
+        return keeper.getExpandingChain();
+    }
+
     /**
         Returns the next macro token from the preprocessor stream.
 
@@ -176,7 +171,8 @@ public final class Preprocessor implements LexicalParser {
             Macro macro, Token token, BodySupplier supplier)
             throws PreprocessException {
         var name = macro.name();
-        expandingMacros.put(name, token);
+        keeper.startExpansion(name, token);
+        // expandingMacros.put(name, token);
         tokenQueue.addFirst(new MacroEndMarker(name));
         prependTokens(supplier.get());
         return Optional.empty();
@@ -324,7 +320,7 @@ public final class Preprocessor implements LexicalParser {
             if (concatenated.getType() == TokenType.UNKNOWN) {
                 throw new InvalidPreprocessingTokenException(
                     concatenated.getValue(),
-                    List.copyOf(expandingMacros.values()));
+                    keeper.getExpandingChain());
             }
             result.add(WrappedToken.of(concatenated));
             i = right.index() + 1;
@@ -432,18 +428,21 @@ public final class Preprocessor implements LexicalParser {
     */
     public void updateMacrosFromDirective(Token token) throws IOException {
         var children = token.getChildren();
-        if (children.isEmpty()) {
-            return;
-        }
+        /*
+            The directive token's children always include at least the
+            DIRECTIVE_END token, so checking for an empty list here is
+            unnecessary.
 
+            // if (children.isEmpty()) {
+            //     return;
+            // }
+        */
         var maybePair = Tokens.findSignificantToken(children, 0);
         if (maybePair.isEmpty()) {
             return;
         }
-
         var pair = maybePair.get();
         var directiveNameToken = pair.token();
-
         if (directiveNameToken.getType() != TokenType.DIRECTIVE_NAME) {
             throw new InvalidPreprocessingDirectiveException(directiveNameToken);
         }
@@ -455,7 +454,8 @@ public final class Preprocessor implements LexicalParser {
         } else if ("undef".equals(directiveName)) {
             handleUndef(children, directiveNameIndex);
         } else {
-            throw new InvalidPreprocessingDirectiveException(directiveNameToken);
+            throw new UnsupportedOperationException(
+                    directiveNameToken + ": not yet implemented");
         }
     }
 
@@ -498,7 +498,7 @@ public final class Preprocessor implements LexicalParser {
                 directiveTokens, nameIndex + 1);
         var body = maybeBodyPair.map(p -> getMacroBody(p.index(), directiveTokens))
             .orElseGet(() -> List.<Token>of());
-        macros.put(macroName, new ObjectLikeMacro(macroName, body));
+        keeper.defineMacro(new ObjectLikeMacro(macroName, body));
     }
 
     // CHECKSTYLE:OFF CyclomaticComplexity
@@ -588,7 +588,8 @@ public final class Preprocessor implements LexicalParser {
         validateMacroBody(body, directiveEnd, parameters, isVariadic);
         var macro = new FunctionLikeMacro(
                 macroName, parameters, isVariadic, body);
-        macros.put(macroName, macro);
+        keeper.defineMacro(macro);
+        // macros.put(macroName, macro);
     }
     // CHECKSTYLE:ON CyclomaticComplexity
 
@@ -680,7 +681,8 @@ public final class Preprocessor implements LexicalParser {
         if (macroNameToken.getType() != TokenType.IDENTIFIER) {
             throw new InvalidMacroNameException(macroNameToken);
         }
-        macros.remove(macroNameToken.getValue());
+        keeper.undefineMacro(macroNameToken.getValue());
+        // macros.remove(macroNameToken.getValue());
     }
 
     /**
@@ -693,14 +695,20 @@ public final class Preprocessor implements LexicalParser {
     */
     private Optional<Token> handleIdentifier(Token token) throws IOException {
         var name = token.getValue();
-        var m = macros.get(name);
-        if (m == null) {
+        var maybeMacro = keeper.getMacro(name);
+        if (maybeMacro.isEmpty()) {
             return Optional.of(token);
         }
-        if (expandingMacros.containsKey(name)) {
-            return Optional.of(token);
-        }
-        return m.apply(this, token);
+        var macro = maybeMacro.get();
+        return macro.apply(this, token);
+        // var m = macros.get(name);
+        // if (m == null) {
+        //     return Optional.of(token);
+        // }
+        // if (expandingMacros.containsKey(name)) {
+        //     return Optional.of(token);
+        // }
+        // return m.apply(this, token);
     }
 
     /**
@@ -709,7 +717,8 @@ public final class Preprocessor implements LexicalParser {
         @param name The name of the macro.
     */
     public void handleEndMarker(String name) {
-        expandingMacros.remove(name);
+        keeper.endExpansion(name);
+        // expandingMacros.remove(name);
     }
 
     /**
@@ -746,7 +755,7 @@ public final class Preprocessor implements LexicalParser {
         /** {@inheritDoc} */
         @Override
         public void expandMacroEndMarker(MacroEndMarker marker) {
-            marker.getMacroEndName().ifPresent(expandingMacros::remove);
+            marker.getMacroEndName().ifPresent(keeper::endExpansion);
         }
 
         /** {@inheritDoc} */
@@ -759,12 +768,17 @@ public final class Preprocessor implements LexicalParser {
                 return;
             }
             var name = token.getValue();
-            var macro = macros.get(name);
-            if (macro == null || expandingMacros.containsKey(name)) {
+            var maybeMacro = keeper.getMacro(name);
+            if (maybeMacro.isEmpty()) {
                 result.add(wrappedToken);
                 return;
             }
-
+            // var macro = macros.get(name);
+            // if (macro == null || expandingMacros.containsKey(name)) {
+            //     result.add(wrappedToken);
+            //     return;
+            // }
+            var macro = maybeMacro.get();
             if (macro instanceof FunctionLikeMacro) {
                 expandFunctionLikeMacro(wrappedToken, (FunctionLikeMacro) macro);
             } else {
@@ -780,7 +794,7 @@ public final class Preprocessor implements LexicalParser {
         */
         public void expandObjectLikeMacro(Token token, Macro macro) {
             var name = macro.name();
-            expandingMacros.put(name, token);
+            keeper.startExpansion(name, token);
             workQueue.addFirst(new MacroEndMarker(name));
             var body = macro.body();
             for (var i = body.size() - 1; i >= 0; --i) {
@@ -826,7 +840,7 @@ public final class Preprocessor implements LexicalParser {
             var token = wrappedToken.unwrap();
             var args = builder.build();
             var substituted = substitute(macro, token, args);
-            expandingMacros.put(name, token);
+            keeper.startExpansion(name, token);
             workQueue.addFirst(new MacroEndMarker(name));
             for (var i = substituted.size() - 1; i >= 0; --i) {
                 workQueue.addFirst(

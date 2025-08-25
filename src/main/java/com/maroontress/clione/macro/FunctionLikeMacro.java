@@ -102,7 +102,7 @@ public final class FunctionLikeMacro implements Macro {
             if (maybeFirst.isPresent()) {
                 throw new DirectiveWithinMacroArgumentsException(
                     maybeFirst.get(),
-                    List.copyOf(preprocessor.getExpandingMacros().values()));
+                    preprocessor.getExpandingChain());
             }
         }
         return behavior.getSubstitutionMapping(this, args, preprocessor);
@@ -128,17 +128,13 @@ public final class FunctionLikeMacro implements Macro {
         for (;;) {
             var maybeMacroToken = preprocessor.nextMacroToken();
             if (maybeMacroToken.isEmpty()) {
-                var expandingTokens = List.copyOf(
-                    preprocessor.getExpandingMacros().values());
                 throw new UnterminatedMacroInvocationException(
-                    macroName, expandingTokens);
+                    macroName, preprocessor.getExpandingChain());
             }
             var macroToken = maybeMacroToken.get();
             if (macroToken instanceof MacroEndMarker) {
-                var expandingTokens = List.copyOf(
-                    preprocessor.getExpandingMacros().values());
                 throw new UnterminatedMacroInvocationException(
-                    macroName, expandingTokens);
+                    macroName, preprocessor.getExpandingChain());
             }
             var maybeToken = macroToken.getToken();
             if (!maybeToken.isPresent()) {
@@ -183,10 +179,9 @@ public final class FunctionLikeMacro implements Macro {
             var causeToken = expectedSize > actualSize
                     ? args.getCloseParen()
                     : args.getComma(expectedSize - 1);
-            var expandingTokens = List.copyOf(
-                    preprocessor.getExpandingMacros().values());
-            throw new MacroArgumentException(
-                    causeToken, expectedSize, actualSize, expandingTokens);
+            throw new MacroArgumentException(causeToken,
+                    expectedSize, actualSize,
+                    preprocessor.getExpandingChain());
         }
         var mapping = new HashMap<String, List<Token>>();
         for (var k = 0; k < expectedSize; ++k) {
@@ -210,18 +205,16 @@ public final class FunctionLikeMacro implements Macro {
         var expectedSize = params.size();
         var actualSize = args.size();
         if (expectedSize > actualSize) {
-            var expandingTokens = preprocessor.getExpandingMacros().values();
             var closeParen = args.getCloseParen();
             throw new MacroArgumentException(closeParen, expectedSize,
-                    actualSize, List.copyOf(expandingTokens));
+                    actualSize, preprocessor.getExpandingChain());
         }
         if (params.size() > 0 && expectedSize == actualSize) {
-            var expandingTokens = preprocessor.getExpandingMacros().values();
             var closeParen = args.getCloseParen();
             throw new InvalidVariadicArgumentException(
                 "passing no argument for the '...' parameter of a variadic macro "
                     + "is a C23 extension",
-                closeParen, List.copyOf(expandingTokens));
+                closeParen, preprocessor.getExpandingChain());
         }
         var mapping = new HashMap<String, List<Token>>();
         for (var k = 0; k < expectedSize; ++k) {
