@@ -47,6 +47,9 @@ public final class DefineHandler implements DirectiveHandler {
         if (macroNameToken.getType() != TokenType.IDENTIFIER) {
             throw new InvalidMacroNameException(macroNameToken);
         }
+        if ("__VA_ARGS__".equals(macroNameToken.getValue())) {
+            throw new InvalidVaArgsException(macroNameToken);
+        }
         var macroName = macroNameToken.getValue();
         var nameIndex = pair.index();
 
@@ -67,7 +70,16 @@ public final class DefineHandler implements DirectiveHandler {
                 directiveTokens, nameIndex + 1);
         var body = maybeBodyPair.map(p -> getMacroBody(p.index(), directiveTokens))
             .orElseGet(() -> List.<Token>of());
+        validateObjectLikeMacroBody(body);
         keeper.defineMacro(new ObjectLikeMacro(macroName, body));
+    }
+
+    private void validateObjectLikeMacroBody(List<Token> body) throws PreprocessException {
+        for (var token : body) {
+            if ("__VA_ARGS__".equals(token.getValue())) {
+                throw new InvalidVaArgsException(token);
+            }
+        }
     }
 
     // CHECKSTYLE:OFF CyclomaticComplexity
@@ -177,6 +189,14 @@ public final class DefineHandler implements DirectiveHandler {
             }
         }
         validateStringizingOperators(body, directiveEnd, parameters, isVariadic);
+        if (isVariadic) {
+            return;
+        }
+        for (var token : body) {
+            if ("__VA_ARGS__".equals(token.getValue())) {
+                throw new InvalidVaArgsException(token);
+            }
+        }
     }
 
     private void validateStringizingOperators(
