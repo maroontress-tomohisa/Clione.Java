@@ -1,5 +1,7 @@
 package com.maroontress.clione;
 
+import static com.maroontress.clione.Parsers.pair;
+import static com.maroontress.clione.Parsers.test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -7,17 +9,16 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+
 import com.maroontress.clione.macro.InvalidConcatenationOperatorException;
 import com.maroontress.clione.macro.InvalidMacroNameException;
 import com.maroontress.clione.macro.InvalidStringizingOperatorException;
+import com.maroontress.clione.macro.InvalidVaArgsException;
 import com.maroontress.clione.macro.MissingCommaException;
 import com.maroontress.clione.macro.MissingIdentifierException;
 import com.maroontress.clione.macro.MissingMacroNameException;
 import com.maroontress.clione.macro.MissingParenException;
 import com.maroontress.clione.macro.MissingWhitespaceAfterMacroName;
-
-import static com.maroontress.clione.Parsers.pair;
-import static com.maroontress.clione.Parsers.test;
 
 public final class DefineErrorTest {
 
@@ -460,6 +461,72 @@ public final class DefineErrorTest {
             assertThat(e.getMessage(), is(m));
             var token = e.getCauseToken();
             assertThat(token.getValue(), is("\"FOO\""));
+        });
+    }
+
+    @Test
+    public void vaArgsInObjectLikeMacro() {
+        var s = """
+            #define FOO __VA_ARGS__
+            """;
+        var m = """
+            L1:13: error: __VA_ARGS__ can only appear in the expansion of a C99 variadic macro""";
+        test(s, parser -> {
+            var e = assertThrows(InvalidVaArgsException.class, parser::next);
+            assertThat(e.getMessage(), is(m));
+            var token = e.getCauseToken();
+            assertThat(token.getValue(), is("__VA_ARGS__"));
+            var span = token.getSpan();
+            var start = span.getStart();
+            var end = span.getEnd();
+            assertThat(start.getLine(), is(1));
+            assertThat(start.getColumn(), is(13));
+            assertThat(end.getLine(), is(1));
+            assertThat(end.getColumn(), is(23));
+        });
+    }
+
+    @Test
+    public void vaArgsInFunctionLikeMacro() {
+        var s = """
+            #define FOO(x) __VA_ARGS__
+            """;
+        var m = """
+            L1:16: error: __VA_ARGS__ can only appear in the expansion of a C99 variadic macro""";
+        test(s, parser -> {
+            var e = assertThrows(InvalidVaArgsException.class, parser::next);
+            assertThat(e.getMessage(), is(m));
+            var token = e.getCauseToken();
+            assertThat(token.getValue(), is("__VA_ARGS__"));
+            var span = token.getSpan();
+            var start = span.getStart();
+            var end = span.getEnd();
+            assertThat(start.getLine(), is(1));
+            assertThat(start.getColumn(), is(16));
+            assertThat(end.getLine(), is(1));
+            assertThat(end.getColumn(), is(26));
+        });
+    }
+
+    @Test
+    public void MacroNameIsVaArg() {
+        var s = """
+            #define __VA_ARGS__
+            """;
+        var m = """
+            L1:9: error: __VA_ARGS__ can only appear in the expansion of a C99 variadic macro""";
+        test(s, parser -> {
+            var e = assertThrows(InvalidVaArgsException.class, parser::next);
+            assertThat(e.getMessage(), is(m));
+            var token = e.getCauseToken();
+            assertThat(token.getValue(), is("__VA_ARGS__"));
+            var span = token.getSpan();
+            var start = span.getStart();
+            var end = span.getEnd();
+            assertThat(start.getLine(), is(1));
+            assertThat(start.getColumn(), is(9));
+            assertThat(end.getLine(), is(1));
+            assertThat(end.getColumn(), is(19));
         });
     }
 }
