@@ -2,19 +2,21 @@ package com.maroontress.clione.macro;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiPredicate;
 
 import com.maroontress.clione.Preprocessor;
 import com.maroontress.clione.Token;
 
 /**
-    The macro behavior for variadic function-like macros.
+    The behavior for variadic function-like macros.
 */
-public final class VariadicMacroBehavior implements FunctionLikeMacroBehavior {
+public final class VariadicFunctionLikeBehavior
+        implements FunctionLikeMacroBehavior {
 
     /**
         Creates a new instance.
     */
-    public VariadicMacroBehavior() {
+    public VariadicFunctionLikeBehavior() {
         // do nothing
     }
 
@@ -23,6 +25,11 @@ public final class VariadicMacroBehavior implements FunctionLikeMacroBehavior {
             FunctionLikeMacro macro, MacroArgument args,
             Preprocessor preprocessor) throws PreprocessException {
         return macro.getVariadicSubstitutionMapping(args, preprocessor);
+    }
+
+    @Override
+    public BiPredicate<Token, List<String>> getStringizingOperandValidator() {
+        return StringizingOperators::variadicOperandValidator;
     }
 
     @Override

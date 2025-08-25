@@ -3,10 +3,10 @@ package com.maroontress.clione.macro;
 import com.maroontress.clione.Token;
 
 /**
-    Thrown to indicate that the '__VA_ARGS__' appears in the replacement list
-    of an object-like macro or a function-like macro that is not variadic.
+    Thrown to indicate that '__VA_ARGS__' appears in a location other than
+    the replacement list of a variadic macro.
 */
-public final class InvalidVaArgsException
+public final class VaArgsKeywordMisusageException
         extends PreprocessException {
 
     private static final long serialVersionUID = 1L;
@@ -16,7 +16,7 @@ public final class InvalidVaArgsException
 
         @param causeToken The token that caused the error.
     */
-    public InvalidVaArgsException(Token causeToken) {
+    public VaArgsKeywordMisusageException(Token causeToken) {
         super(String.format(
                 "%s: error: __VA_ARGS__ can only appear in the expansion of "
                         + "a C99 variadic macro",

@@ -16,11 +16,6 @@ import com.maroontress.clione.TokenType;
 */
 public final class FunctionLikeMacro implements Macro {
 
-    private static final FunctionLikeMacroBehavior DEFAULT_BEHAVIOR
-        = new DefaultMacroBehavior();
-    private static final FunctionLikeMacroBehavior VARIADIC_BEHAVIOR
-        = new VariadicMacroBehavior();
-
     private final String name;
     private final List<String> parameters;
     private final List<Token> body;
@@ -31,20 +26,16 @@ public final class FunctionLikeMacro implements Macro {
 
         @param name The name of the macro.
         @param parameters The list of parameter names.
-        @param isVariadic {@code true} if the macro is variadic, {@code false}
-        otherwise.
         @param body The list of tokens that form the macro's body.
     */
     public FunctionLikeMacro(String name,
                              List<String> parameters,
-                             boolean isVariadic,
-                             List<Token> body) {
+                             List<Token> body,
+                             FunctionLikeMacroBehavior behavior) {
         this.name = name;
         this.parameters = List.copyOf(parameters);
         this.body = List.copyOf(body);
-        this.behavior = isVariadic
-            ? VARIADIC_BEHAVIOR
-            : DEFAULT_BEHAVIOR;
+        this.behavior = behavior;
     }
 
     /** {@inheritDoc} */

@@ -657,6 +657,7 @@
       <property name="max" value="7"/>
     </module>
     <module name="ClassDataAbstractionCoupling">
+      <property name="excludeClassesRegexps" value=".*Exception$"/>
       <!-- Default classes are also listed -->
       <property name="excludedClasses"
                 value="boolean, byte, char, double, float, int, long, short, void,

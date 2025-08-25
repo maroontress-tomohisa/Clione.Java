@@ -2,7 +2,6 @@ package com.maroontress.clione.macro;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
 
 import com.maroontress.clione.Token;
 import com.maroontress.clione.TokenType;
@@ -10,9 +9,7 @@ import com.maroontress.clione.TokenType;
 /**
     Handles the #define directive.
 */
-// CHECKSTYLE:OFF ClassDataAbstractionCoupling
 public final class DefineHandler implements DirectiveHandler {
-    // CHECKSTYLE:ON ClassDataAbstractionCoupling
 
     private final MacroKeeper keeper;
 
@@ -28,7 +25,6 @@ public final class DefineHandler implements DirectiveHandler {
               + parseFunctionLikeMacro
               | + validateMacroBody
               |   + validateStringizingOperators
-              |     + newStringizingOperandValidator
               + getMacroBody
         */
     }
@@ -47,10 +43,10 @@ public final class DefineHandler implements DirectiveHandler {
         if (macroNameToken.getType() != TokenType.IDENTIFIER) {
             throw new InvalidMacroNameException(macroNameToken);
         }
-        if ("__VA_ARGS__".equals(macroNameToken.getValue())) {
-            throw new InvalidVaArgsException(macroNameToken);
-        }
         var macroName = macroNameToken.getValue();
+        if (macroName.equals(MacroKeywords.VA_ARGS)) {
+            throw new VaArgsKeywordMisusageException(macroNameToken);
+        }
         var nameIndex = pair.index();
 
         var nextTokenIndex = pair.index() + 1;
@@ -70,22 +66,25 @@ public final class DefineHandler implements DirectiveHandler {
                 directiveTokens, nameIndex + 1);
         var body = maybeBodyPair.map(p -> getMacroBody(p.index(), directiveTokens))
             .orElseGet(() -> List.<Token>of());
-        validateObjectLikeMacroBody(body);
+        validateVaArgKeyword(body);
         keeper.defineMacro(new ObjectLikeMacro(macroName, body));
     }
 
-    private void validateObjectLikeMacroBody(List<Token> body) throws PreprocessException {
-        for (var token : body) {
-            if ("__VA_ARGS__".equals(token.getValue())) {
-                throw new InvalidVaArgsException(token);
-            }
+    public static void validateVaArgKeyword(List<Token> body)
+            throws VaArgsKeywordMisusageException {
+        var maybeVaArg = body.stream()
+                .filter(t -> t.getType() == TokenType.IDENTIFIER
+                        && t.getValue().equals(MacroKeywords.VA_ARGS))
+                .findFirst();
+        if (maybeVaArg.isPresent()) {
+            throw new VaArgsKeywordMisusageException(maybeVaArg.get());
         }
     }
 
     // CHECKSTYLE:OFF CyclomaticComplexity
     private void parseFunctionLikeMacro(List<Token> tokens, int nameIndex)
             throws PreprocessException {
-        var macroName = tokens.get(nameIndex).getValue();
+        var name = tokens.get(nameIndex).getValue();
         var directiveEnd = tokens.getLast();
         var parameters = new ArrayList<String>();
         var currentIndex = nameIndex + 2;
@@ -166,16 +165,19 @@ public final class DefineHandler implements DirectiveHandler {
         var body = Tokens.findSignificantToken(tokens, currentIndex + 1)
                 .map(p -> getMacroBody(p.index(), tokens))
                 .orElseGet(() -> List.<Token>of());
-        validateMacroBody(body, directiveEnd, parameters, isVariadic);
-        var macro = new FunctionLikeMacro(
-                macroName, parameters, isVariadic, body);
+        var behavior = isVariadic
+                ? FunctionLikeMacroBehavior.VARIADIC
+                : FunctionLikeMacroBehavior.DEFAULT;
+        validateMacroBody(body, directiveEnd, parameters, behavior);
+        var macro = new FunctionLikeMacro(name, parameters, body, behavior);
         keeper.defineMacro(macro);
     }
     // CHECKSTYLE:ON CyclomaticComplexity
 
-    private void validateMacroBody(List<Token> body, Token directiveEnd,
-            List<String> parameters, boolean isVariadic)
-            throws PreprocessException {
+    private void validateMacroBody(List<Token> body,
+            Token directiveEnd,
+            List<String> parameters,
+            FunctionLikeMacroBehavior behavior) throws PreprocessException {
         if (!body.isEmpty()) {
             var firstToken = body.getFirst();
             if (Tokens.isConcatenatingOperator(firstToken)) {
@@ -188,21 +190,15 @@ public final class DefineHandler implements DirectiveHandler {
                         lastToken, false);
             }
         }
-        validateStringizingOperators(body, directiveEnd, parameters, isVariadic);
-        if (isVariadic) {
-            return;
-        }
-        for (var token : body) {
-            if ("__VA_ARGS__".equals(token.getValue())) {
-                throw new InvalidVaArgsException(token);
-            }
-        }
+        validateStringizingOperators(body, directiveEnd, parameters, behavior);
+        behavior.validateVaArgKeyword(body);
     }
 
-    private void validateStringizingOperators(
-            List<Token> body, Token directiveEnd, List<String> parameters,
-            boolean isVariadic) throws PreprocessException {
-        var isValid = newStringizingOperandValidator(parameters, isVariadic);
+    private void validateStringizingOperators(List<Token> body,
+            Token directiveEnd,
+            List<String> parameters,
+            FunctionLikeMacroBehavior behavior) throws PreprocessException {
+        var validator = behavior.newStringizingOperandValidator(parameters);
         for (var i = 0; i < body.size(); ++i) {
             var token = body.get(i);
             if (!Tokens.isStringizingOperator(token)) {
@@ -217,25 +213,10 @@ public final class DefineHandler implements DirectiveHandler {
                 throw new InvalidStringizingOperatorException(directiveEnd);
             }
             var nextToken = body.get(nextTokenIndex);
-            if (!isValid.test(nextToken)) {
+            if (!validator.test(nextToken)) {
                 throw new InvalidStringizingOperatorException(nextToken);
             }
         }
-    }
-
-    private Predicate<Token> newStringizingOperandValidator(
-            List<String> parameters, boolean isVariadic) {
-        return isVariadic
-                ? token -> {
-                    var value = token.getValue();
-                    return token.getType() == TokenType.IDENTIFIER
-                            && (parameters.contains(value)
-                                    || "__VA_ARGS__".equals(value));
-                }
-                : token -> {
-                    return token.getType() == TokenType.IDENTIFIER
-                            && parameters.contains(token.getValue());
-                };
     }
 
     private List<Token> getMacroBody(int bodyIndex, List<Token> tokens) {

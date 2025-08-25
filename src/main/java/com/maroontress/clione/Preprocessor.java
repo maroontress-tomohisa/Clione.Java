@@ -2,6 +2,7 @@ package com.maroontress.clione;
 
 import com.maroontress.clione.macro.MacroExpansionVisitor;
 import com.maroontress.clione.macro.MacroKeeper;
+import com.maroontress.clione.macro.MacroKeywords;
 import com.maroontress.clione.macro.DirectiveHandler;
 import com.maroontress.clione.macro.FunctionLikeMacro;
 import com.maroontress.clione.macro.InvalidPreprocessingDirectiveException;
@@ -35,9 +36,7 @@ import java.util.stream.Collectors;
     It maintains a map of defined macros and performs substitutions when
     identifiers are encountered.</p>
 */
-// CHECKSTYLE:OFF ClassDataAbstractionCoupling
 public final class Preprocessor implements LexicalParser {
-    // CHECKSTYLE:ON ClassDataAbstractionCoupling
 
     private final LexicalParser parser;
     private final MacroKeeper keeper = new MacroKeeper();
@@ -169,7 +168,6 @@ public final class Preprocessor implements LexicalParser {
             throws PreprocessException {
         var name = macro.name();
         keeper.startExpansion(name, token);
-        // expandingMacros.put(name, token);
         tokenQueue.addFirst(new MacroEndMarker(name));
         prependTokens(supplier.get());
         return Optional.empty();
@@ -262,9 +260,8 @@ public final class Preprocessor implements LexicalParser {
             Map<String, List<Token>> mapping,
             List<WrappedToken> substituted) throws PreprocessException {
         var tokenValue = token.getValue();
-        if ("__VA_ARGS__".equals(tokenValue)) {
-            // ここはポリモーフィズムを適用すべき
-            var vaArgs = mapping.get("__VA_ARGS__");
+        if (tokenValue.equals(MacroKeywords.VA_ARGS)) {
+            var vaArgs = mapping.get(MacroKeywords.VA_ARGS);
             if (vaArgs != null) {
                 vaArgs.forEach(
                     t -> substituted.add(new ParameterOriginatedToken(t)));

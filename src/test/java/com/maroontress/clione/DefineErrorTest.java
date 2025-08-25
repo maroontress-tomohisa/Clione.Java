@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import com.maroontress.clione.macro.InvalidConcatenationOperatorException;
 import com.maroontress.clione.macro.InvalidMacroNameException;
 import com.maroontress.clione.macro.InvalidStringizingOperatorException;
-import com.maroontress.clione.macro.InvalidVaArgsException;
+import com.maroontress.clione.macro.VaArgsKeywordMisusageException;
 import com.maroontress.clione.macro.MissingCommaException;
 import com.maroontress.clione.macro.MissingIdentifierException;
 import com.maroontress.clione.macro.MissingMacroNameException;
@@ -472,7 +472,7 @@ public final class DefineErrorTest {
         var m = """
             L1:13: error: __VA_ARGS__ can only appear in the expansion of a C99 variadic macro""";
         test(s, parser -> {
-            var e = assertThrows(InvalidVaArgsException.class, parser::next);
+            var e = assertThrows(VaArgsKeywordMisusageException.class, parser::next);
             assertThat(e.getMessage(), is(m));
             var token = e.getCauseToken();
             assertThat(token.getValue(), is("__VA_ARGS__"));
@@ -494,7 +494,7 @@ public final class DefineErrorTest {
         var m = """
             L1:16: error: __VA_ARGS__ can only appear in the expansion of a C99 variadic macro""";
         test(s, parser -> {
-            var e = assertThrows(InvalidVaArgsException.class, parser::next);
+            var e = assertThrows(VaArgsKeywordMisusageException.class, parser::next);
             assertThat(e.getMessage(), is(m));
             var token = e.getCauseToken();
             assertThat(token.getValue(), is("__VA_ARGS__"));
@@ -516,7 +516,7 @@ public final class DefineErrorTest {
         var m = """
             L1:9: error: __VA_ARGS__ can only appear in the expansion of a C99 variadic macro""";
         test(s, parser -> {
-            var e = assertThrows(InvalidVaArgsException.class, parser::next);
+            var e = assertThrows(VaArgsKeywordMisusageException.class, parser::next);
             assertThat(e.getMessage(), is(m));
             var token = e.getCauseToken();
             assertThat(token.getValue(), is("__VA_ARGS__"));
