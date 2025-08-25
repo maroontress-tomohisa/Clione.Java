@@ -14,11 +14,15 @@ import com.maroontress.clione.TokenType;
 */
 public interface FunctionLikeMacroBehavior {
 
-    public static final FunctionLikeMacroBehavior DEFAULT
-            = new RegularFunctionLikeBehavior();
+    /**
+        The behavior for regular function-like macros.
+    */
+    FunctionLikeMacroBehavior DEFAULT = new RegularFunctionLikeBehavior();
 
-    public static final FunctionLikeMacroBehavior VARIADIC
-            = new VariadicFunctionLikeBehavior();
+    /**
+        The behavior for variadic function-like macros.
+    */
+    FunctionLikeMacroBehavior VARIADIC = new VariadicFunctionLikeBehavior();
 
     /**
         Returns the substitution mapping for the given macro and arguments.
@@ -43,8 +47,19 @@ public interface FunctionLikeMacroBehavior {
     MacroArgumentBuilder createArgumentBuilder(
             FunctionLikeMacro macro, Token openParen);
 
+    /**
+        Returns the stringizing operand validator.
+
+        @return The stringizing operand validator.
+    */
     BiPredicate<Token, List<String>> getStringizingOperandValidator();
 
+    /**
+        Creates a new stringizing operand validator.
+
+        @param parameters The list of macro parameters.
+        @return A new stringizing operand validator.
+    */
     default Predicate<Token> newStringizingOperandValidator(
             List<String> parameters) {
         var validator = getStringizingOperandValidator();
@@ -54,6 +69,13 @@ public interface FunctionLikeMacroBehavior {
         };
     }
 
+    /**
+        Validates whether the `__VA_ARGS__` keyword is used correctly.
+
+        @param body The macro body.
+        @throws PreprocessException If the `__VA_ARGS__` keyword is used
+        incorrectly.
+    */
     default void validateVaArgKeyword(List<Token> body)
             throws PreprocessException {
         // Do nothing

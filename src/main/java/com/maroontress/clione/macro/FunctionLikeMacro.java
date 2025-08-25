@@ -27,6 +27,7 @@ public final class FunctionLikeMacro implements Macro {
         @param name The name of the macro.
         @param parameters The list of parameter names.
         @param body The list of tokens that form the macro's body.
+        @param behavior The macro behavior.
     */
     public FunctionLikeMacro(String name,
                              List<String> parameters,

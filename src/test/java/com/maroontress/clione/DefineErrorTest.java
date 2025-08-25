@@ -509,7 +509,7 @@ public final class DefineErrorTest {
     }
 
     @Test
-    public void MacroNameIsVaArg() {
+    public void macroNameIsVaArg() {
         var s = """
             #define __VA_ARGS__
             """;

@@ -70,11 +70,20 @@ public final class DefineHandler implements DirectiveHandler {
         keeper.defineMacro(new ObjectLikeMacro(macroName, body));
     }
 
+    /**
+        Validates whether the `__VA_ARGS__` keyword is used correctly.
+
+        @param body The macro body.
+        @throws VaArgsKeywordMisusageException If the `__VA_ARGS__` keyword is
+        used incorrectly.
+    */
     public static void validateVaArgKeyword(List<Token> body)
             throws VaArgsKeywordMisusageException {
         var maybeVaArg = body.stream()
-                .filter(t -> t.getType() == TokenType.IDENTIFIER
-                        && t.getValue().equals(MacroKeywords.VA_ARGS))
+                .filter(t -> {
+                    return t.getType() == TokenType.IDENTIFIER
+                        && t.getValue().equals(MacroKeywords.VA_ARGS);
+                })
                 .findFirst();
         if (maybeVaArg.isPresent()) {
             throw new VaArgsKeywordMisusageException(maybeVaArg.get());
