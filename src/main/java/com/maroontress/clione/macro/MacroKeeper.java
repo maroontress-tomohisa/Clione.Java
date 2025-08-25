@@ -17,6 +17,12 @@ public final class MacroKeeper {
     private final Map<String, Token> expandingChain = new LinkedHashMap<>();
 
     /**
+        Creates a new instance.
+    */
+    public MacroKeeper() {
+    }
+
+    /**
         Defines a new macro.
 
         @param macro The macro to define.

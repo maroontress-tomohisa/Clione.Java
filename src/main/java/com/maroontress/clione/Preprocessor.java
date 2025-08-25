@@ -118,6 +118,12 @@ public final class Preprocessor implements LexicalParser {
         return parser.getReservedWords();
     }
 
+    /**
+        Returns the current chain of expanding macros.
+
+        @return The list of tokens that triggered the current
+            macro expansions.
+    */
     public List<Token> getExpandingChain() {
         return keeper.getExpandingChain();
     }
