@@ -7,10 +7,20 @@ import java.util.function.Predicate;
 import com.maroontress.clione.Token;
 import com.maroontress.clione.TokenType;
 
+/**
+    Handles the #define directive.
+*/
+// CHECKSTYLE:OFF ClassDataAbstractionCoupling
 public final class DefineHandler implements DirectiveHandler {
+    // CHECKSTYLE:ON ClassDataAbstractionCoupling
 
     private final MacroKeeper keeper;
 
+    /**
+        Constructs a new instance.
+
+        @param keeper the macro keeper.
+    */
     public DefineHandler(MacroKeeper keeper) {
         this.keeper = keeper;
         /*
