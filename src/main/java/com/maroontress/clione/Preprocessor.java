@@ -236,8 +236,8 @@ public final class Preprocessor implements LexicalParser {
                     if (nextToken.isType(TokenType.IDENTIFIER)
                             && mapping.containsKey(nextValue)) {
                         var argTokens = mapping.get(nextValue);
-                        var stringized = TokenKit.stringize(argTokens,
-                                currentToken.getSpan());
+                        var stringized = Tokens.stringize(argTokens,
+                                currentToken.getSpan().getStart());
                         substituted.add(WrappedToken.of(stringized));
                         i = nextTokenIndex;
                     } else {
