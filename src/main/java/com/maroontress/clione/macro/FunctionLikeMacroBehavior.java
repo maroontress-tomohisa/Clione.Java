@@ -64,7 +64,7 @@ public interface FunctionLikeMacroBehavior {
             List<String> parameters) {
         var validator = getStringizingOperandValidator();
         return token -> {
-            return token.getType() == TokenType.IDENTIFIER
+            return token.isType(TokenType.IDENTIFIER)
                     && validator.test(token, parameters);
         };
     }

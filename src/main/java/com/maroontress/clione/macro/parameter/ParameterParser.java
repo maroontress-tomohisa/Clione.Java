@@ -13,7 +13,7 @@ import com.maroontress.clione.macro.InvalidConcatenationOperatorException;
 import com.maroontress.clione.macro.InvalidStringizingOperatorException;
 import com.maroontress.clione.macro.Macro;
 import com.maroontress.clione.macro.PreprocessException;
-import com.maroontress.clione.macro.Tokens;
+import com.maroontress.clione.macro.TokenKit;
 
 /**
     Parses parameters of a function-like macro.
@@ -47,20 +47,19 @@ public final class ParameterParser {
     public Macro parse() throws PreprocessException {
         while (!parserState.isCompleted()) {
             var token = queue.removeFirst();
-            var tokenType = token.getType();
-            if (tokenType == TokenType.DIRECTIVE_END) {
+            if (token.isType(TokenType.DIRECTIVE_END)) {
                 throw new MissingParenInMacroParameterListException(token);
             }
-            if (Tokens.isDelimiterOrComment(token)) {
+            if (TokenKit.isDelimiterOrComment(token)) {
                 continue;
             }
-            parserState = Tokens.isCloseParenthesis(token)
+            parserState = TokenKit.isCloseParenthesis(token)
                 ? parserState.onCloseParen(token)
                 : parserState.nextState(token, parameters::add);
         }
         var behavior = parserState.getFunctionLikeMacroBehavior();
         var bodyList = new ArrayList<>(queue);
-        var body = Tokens.findSignificantToken(bodyList, 0)
+        var body = TokenKit.findSignificantToken(bodyList, 0)
                 .map(p -> DefineHandler.getMacroBody(p.index(), bodyList))
                 .orElseGet(() -> List.<Token>of());
         validateMacroBody(body, behavior);
@@ -71,12 +70,12 @@ public final class ParameterParser {
             FunctionLikeMacroBehavior behavior) throws PreprocessException {
         if (!body.isEmpty()) {
             var firstToken = body.getFirst();
-            if (Tokens.isConcatenatingOperator(firstToken)) {
+            if (TokenKit.isConcatenatingOperator(firstToken)) {
                 throw new InvalidConcatenationOperatorException(
                         firstToken, true);
             }
             var lastToken = body.getLast();
-            if (Tokens.isConcatenatingOperator(lastToken)) {
+            if (TokenKit.isConcatenatingOperator(lastToken)) {
                 throw new InvalidConcatenationOperatorException(
                         lastToken, false);
             }
@@ -90,12 +89,12 @@ public final class ParameterParser {
         var validator = behavior.newStringizingOperandValidator(parameters);
         for (var i = 0; i < body.size(); ++i) {
             var token = body.get(i);
-            if (!Tokens.isStringizingOperator(token)) {
+            if (!TokenKit.isStringizingOperator(token)) {
                 continue;
             }
             var nextTokenIndex = i + 1;
             while (nextTokenIndex < body.size()
-                    && Tokens.isDelimiterOrComment(body.get(nextTokenIndex))) {
+                    && TokenKit.isDelimiterOrComment(body.get(nextTokenIndex))) {
                 ++nextTokenIndex;
             }
             if (nextTokenIndex >= body.size()) {

@@ -29,14 +29,14 @@ public final class DefineHandler implements DirectiveHandler {
     @Override
     public void apply(List<Token> directiveTokens, int directiveNameIndex)
             throws PreprocessException {
-        var maybePair = Tokens.findSignificantToken(
+        var maybePair = TokenKit.findSignificantToken(
                 directiveTokens, directiveNameIndex + 1);
         if (maybePair.isEmpty()) {
             throw new MissingMacroNameException(directiveTokens.getLast());
         }
         var pair = maybePair.get();
         var macroNameToken = pair.token();
-        if (macroNameToken.getType() != TokenType.IDENTIFIER) {
+        if (!macroNameToken.isType(TokenType.IDENTIFIER)) {
             throw new InvalidMacroNameException(macroNameToken);
         }
         var macroName = macroNameToken.getValue();
@@ -48,20 +48,20 @@ public final class DefineHandler implements DirectiveHandler {
         var nextTokenIndex = pair.index() + 1;
         if (nextTokenIndex < directiveTokens.size()) {
             var nextToken = directiveTokens.get(nextTokenIndex);
-            if (Tokens.isOpenParenthesis(nextToken)) {
+            if (TokenKit.isOpenParenthesis(nextToken)) {
                 var subList = directiveTokens.subList(
                         nameIndex + 2, directiveTokens.size());
                 var queue = new ArrayDeque<>(subList);
                 parseFunctionLikeMacro(macroName, queue);
                 return;
             }
-            if (!Tokens.isDelimiterOrComment(nextToken)
-                    && nextToken.getType() != TokenType.DIRECTIVE_END) {
+            if (!TokenKit.isDelimiterOrComment(nextToken)
+                    && !nextToken.isType(TokenType.DIRECTIVE_END)) {
                 throw new MissingWhitespaceAfterMacroName(nextToken);
             }
         }
 
-        var maybeBodyPair = Tokens.findSignificantToken(
+        var maybeBodyPair = TokenKit.findSignificantToken(
                 directiveTokens, nameIndex + 1);
         var body = maybeBodyPair.map(p -> getMacroBody(p.index(), directiveTokens))
             .orElseGet(() -> List.<Token>of());
@@ -80,8 +80,8 @@ public final class DefineHandler implements DirectiveHandler {
             throws VaArgsKeywordMisusageException {
         var maybeVaArg = body.stream()
                 .filter(t -> {
-                    return t.getType() == TokenType.IDENTIFIER
-                        && t.getValue().equals(MacroKeywords.VA_ARGS);
+                    return t.isType(TokenType.IDENTIFIER)
+                        && t.isValue(MacroKeywords.VA_ARGS);
                 })
                 .findFirst();
         if (maybeVaArg.isPresent()) {
@@ -100,14 +100,14 @@ public final class DefineHandler implements DirectiveHandler {
         var macroBody = new ArrayList<Token>();
         for (var i = bodyIndex; i < tokens.size(); ++i) {
             var token = tokens.get(i);
-            if (token.getType() == TokenType.DIRECTIVE_END) {
+            if (token.isType(TokenType.DIRECTIVE_END)) {
                 break;
             }
             macroBody.add(token);
         }
 
         for (var i = macroBody.size() - 1; i >= 0; i--) {
-            if (!Tokens.isDelimiterOrComment(macroBody.get(i))) {
+            if (!TokenKit.isDelimiterOrComment(macroBody.get(i))) {
                 return macroBody.subList(0, i + 1);
             }
         }

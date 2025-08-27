@@ -89,7 +89,7 @@ public final class FunctionLikeMacro implements Macro {
                 continue;
             }
             var maybeFirst = tokenList.stream()
-                    .filter(t -> t.getType() == TokenType.DIRECTIVE)
+                    .filter(t -> t.isType(TokenType.DIRECTIVE))
                     .findFirst();
             if (maybeFirst.isPresent()) {
                 throw new DirectiveWithinMacroArgumentsException(

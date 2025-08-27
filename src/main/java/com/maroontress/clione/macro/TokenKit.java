@@ -1,28 +1,23 @@
 package com.maroontress.clione.macro;
 
-import java.io.IOException;
-import java.io.StringReader;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Stream;
 
 import com.maroontress.clione.SourceChar;
 import com.maroontress.clione.SourceLocation;
 import com.maroontress.clione.SourceSpan;
 import com.maroontress.clione.Token;
 import com.maroontress.clione.TokenType;
-import com.maroontress.clione.impl.ReaderSource;
 import com.maroontress.clione.impl.SourceChars;
 import com.maroontress.clione.impl.TokenBuilder;
-import com.maroontress.clione.impl.Transcriber;
 
+// TokenBuilder, SourceCharsを使わないように作り直す（stringize()をclioneに移す）
 /**
     The utility class for operations on token sequence.
 */
-public final class Tokens {
+public final class TokenKit {
 
-    private Tokens() {
+    private TokenKit() {
     }
 
     /**
@@ -38,14 +33,14 @@ public final class Tokens {
         var size = tokenList.size();
         var index = startIndex;
         while (index < size
-                && Tokens.isDelimiterOrComment(tokenList.get(index))) {
+                && TokenKit.isDelimiterOrComment(tokenList.get(index))) {
             ++index;
         }
         if (index >= size) {
             return Optional.empty();
         }
         var token = tokenList.get(index);
-        if (token.getType() == TokenType.DIRECTIVE_END) {
+        if (token.isType(TokenType.DIRECTIVE_END)) {
             return Optional.empty();
         }
         return Optional.of(new TokenIndexPair(token, index));
@@ -132,65 +127,7 @@ public final class Tokens {
 
     private static boolean isTypeAndValue(
             Token token, TokenType type, String value) {
-        return token.getType() == type && value.equals(token.getValue());
-    }
-
-    /**
-        Concatenates the two tokens.
-
-        This method concatenates the two tokens
-        and returns a new token.
-        The token type of the resulting token is determined
-        by parsing the concatenated token string.
-        If the concatenated string is a valid identifier
-        and is in the given reserved word set,
-        the resulting token type is {@code TokenType.RESERVED}.
-
-        @param left The left token.
-        @param right The right token.
-        @param reservedWords The set of the reserved words.
-        @return The new token.
-    */
-    public static Token concatenate(
-            Token left, Token right, Set<String> reservedWords) {
-        var builder = new TokenBuilder();
-        Stream.of(left, right)
-                .flatMap(t -> t.getChars().stream())
-                .forEach(builder::append);
-        var tokenString = builder.toTokenString();
-        return getTokenType(tokenString)
-                .map(type -> {
-                    var newType = (type == TokenType.IDENTIFIER
-                            && reservedWords.contains(tokenString))
-                                    ? TokenType.RESERVED
-                                    : type;
-                    return builder.toToken(newType);
-                })
-                .orElseGet(() -> builder.toToken(TokenType.UNKNOWN));
-    }
-
-    private static Optional<TokenType> getTokenType(String tokenString) {
-        var source = new ReaderSource(new StringReader(tokenString));
-        var x = new Transcriber(source);
-        try {
-            var type = x.readToken();
-            /*
-                TokenBuilder#toTokenString() doesn't return an empty string,
-                so we don't need the following check:
-
-                if (type == null) {
-                    return Optional.empty();
-                }
-            */
-            var nextType = x.readToken();
-            if (nextType != null) {
-                return Optional.empty();
-            }
-            return Optional.of(type);
-        } catch (IOException e) {
-            // This should not happen with StringReader.
-            return Optional.empty();
-        }
+        return token.isType(type) && token.isValue(value);
     }
 
     /**

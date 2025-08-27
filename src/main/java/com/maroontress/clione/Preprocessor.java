@@ -15,7 +15,7 @@ import com.maroontress.clione.macro.PreprocessException;
 import com.maroontress.clione.macro.TokenIndexPair;
 import com.maroontress.clione.macro.MacroToken;
 import com.maroontress.clione.macro.WrappedToken;
-import com.maroontress.clione.macro.Tokens;
+import com.maroontress.clione.macro.TokenKit;
 
 import java.io.IOException;
 import java.util.ArrayDeque;
@@ -223,20 +223,20 @@ public final class Preprocessor implements LexicalParser {
         var i = 0;
         while (i < body.size()) {
             var currentToken = body.get(i);
-            if (Tokens.isStringizingOperator(currentToken)) {
+            if (TokenKit.isStringizingOperator(currentToken)) {
                 var nextTokenIndex = i + 1;
                 while (nextTokenIndex < body.size()
-                        && Tokens.isDelimiterOrComment(body.get(nextTokenIndex))) {
+                        && TokenKit.isDelimiterOrComment(body.get(nextTokenIndex))) {
                     nextTokenIndex++;
                 }
 
                 if (nextTokenIndex < body.size()) {
                     var nextToken = body.get(nextTokenIndex);
                     var nextValue = nextToken.getValue();
-                    if (nextToken.getType() == TokenType.IDENTIFIER
+                    if (nextToken.isType(TokenType.IDENTIFIER)
                             && mapping.containsKey(nextValue)) {
                         var argTokens = mapping.get(nextValue);
-                        var stringized = Tokens.stringize(argTokens,
+                        var stringized = TokenKit.stringize(argTokens,
                                 currentToken.getSpan());
                         substituted.add(WrappedToken.of(stringized));
                         i = nextTokenIndex;
@@ -246,7 +246,7 @@ public final class Preprocessor implements LexicalParser {
                 } else {
                     substituted.add(WrappedToken.of(currentToken));
                 }
-            } else if (currentToken.getType() == TokenType.IDENTIFIER) {
+            } else if (currentToken.isType(TokenType.IDENTIFIER)) {
                 substituteIdentifier(currentToken, mapping, substituted);
             } else {
                 substituted.add(WrappedToken.of(currentToken));
@@ -287,7 +287,7 @@ public final class Preprocessor implements LexicalParser {
         while (i < tokens.size()) {
             var currentMacroToken = tokens.get(i);
             var currentToken = currentMacroToken.getToken().get();
-            if (!Tokens.isConcatenatingOperator(currentToken)) {
+            if (!TokenKit.isConcatenatingOperator(currentToken)) {
                 result.add(currentMacroToken);
                 ++i;
                 continue;
@@ -311,7 +311,7 @@ public final class Preprocessor implements LexicalParser {
             result.subList(left.index(), result.size()).clear();
             var concatenated = Tokens.concatenate(
                 left.token(), right.token(), getReservedWords());
-            if (concatenated.getType() == TokenType.UNKNOWN) {
+            if (concatenated.isType(TokenType.UNKNOWN)) {
                 throw new InvalidPreprocessingTokenException(
                     concatenated.getValue(),
                     keeper.getExpandingChain());
@@ -326,7 +326,7 @@ public final class Preprocessor implements LexicalParser {
             List<WrappedToken> wrappedTokens) {
         for (var k = wrappedTokens.size() - 1; k >= 0; --k) {
             var token = wrappedTokens.get(k).unwrap();
-            if (!Tokens.isDelimiterOrComment(token)) {
+            if (!TokenKit.isDelimiterOrComment(token)) {
                 return Optional.of(new TokenIndexPair(token, k));
             }
         }
@@ -338,7 +338,7 @@ public final class Preprocessor implements LexicalParser {
         var n = wrappedTokens.size();
         for (var k = start; k < n; ++k) {
             var token = wrappedTokens.get(k).unwrap();
-            if (!Tokens.isDelimiterOrComment(token)) {
+            if (!TokenKit.isDelimiterOrComment(token)) {
                 return Optional.of(new TokenIndexPair(token, k));
             }
         }
@@ -356,10 +356,10 @@ public final class Preprocessor implements LexicalParser {
                 continue;
             }
             var token = maybeToken.get();
-            if (Tokens.isDelimiterOrComment(token)) {
+            if (TokenKit.isDelimiterOrComment(token)) {
                 continue;
             }
-            if (Tokens.isOpenParenthesis(token)) {
+            if (TokenKit.isOpenParenthesis(token)) {
                 return Optional.of(token);
             }
             return Optional.empty();
@@ -399,10 +399,10 @@ public final class Preprocessor implements LexicalParser {
             var nextToken = next.getToken();
             if (nextToken.isPresent()) {
                 var token = nextToken.get();
-                if (Tokens.isDelimiterOrComment(token)) {
+                if (TokenKit.isDelimiterOrComment(token)) {
                     continue;
                 }
-                if (Tokens.isOpenParenthesis(token)) {
+                if (TokenKit.isOpenParenthesis(token)) {
                     return Optional.of(token);
                 }
             }
@@ -431,13 +431,13 @@ public final class Preprocessor implements LexicalParser {
             //     return;
             // }
         */
-        var maybePair = Tokens.findSignificantToken(children, 0);
+        var maybePair = TokenKit.findSignificantToken(children, 0);
         if (maybePair.isEmpty()) {
             return;
         }
         var pair = maybePair.get();
         var directiveNameToken = pair.token();
-        if (directiveNameToken.getType() != TokenType.DIRECTIVE_NAME) {
+        if (!directiveNameToken.isType(TokenType.DIRECTIVE_NAME)) {
             throw new InvalidPreprocessingDirectiveException(directiveNameToken);
         }
 
@@ -520,7 +520,7 @@ public final class Preprocessor implements LexicalParser {
         public void expandWrappedToken(WrappedToken wrappedToken) throws PreprocessException {
             var token = wrappedToken.unwrap();
             if (!wrappedToken.isOriginatingFromParameter()
-                    || token.getType() != TokenType.IDENTIFIER) {
+                    || !token.isType(TokenType.IDENTIFIER)) {
                 result.add(wrappedToken);
                 return;
             }

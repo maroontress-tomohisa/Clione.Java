@@ -6,7 +6,7 @@ import com.maroontress.clione.Token;
 import com.maroontress.clione.TokenType;
 import com.maroontress.clione.macro.FunctionLikeMacroBehavior;
 import com.maroontress.clione.macro.PreprocessException;
-import com.maroontress.clione.macro.Tokens;
+import com.maroontress.clione.macro.TokenKit;
 
 /**
     The state of the function-like macro parameter parser.
@@ -89,12 +89,11 @@ public interface State {
 
     private static State nextStateOfIdentifier(Token token,
             Consumer<String> addParameter) throws PreprocessException {
-        if (Tokens.isEllipsis(token)) {
+        if (TokenKit.isEllipsis(token)) {
             return State.AFTER_ELLIPSIS;
         }
-        var tokenType = token.getType();
-        if (tokenType != TokenType.IDENTIFIER) {
-            throw Tokens.isComma(token)
+        if (!token.isType(TokenType.IDENTIFIER)) {
+            throw TokenKit.isComma(token)
                 ? new MissingMacroParameterException(token)
                 : new InvalidMacroParameterTokenException(token);
         }
@@ -104,7 +103,7 @@ public interface State {
 
     private static State nextStateOfPunctuator(Token token,
             Consumer<String> addParameter) throws PreprocessException {
-        if (!Tokens.isComma(token)) {
+        if (!TokenKit.isComma(token)) {
             throw new MissingCommaInMacroParameterListException(token);
         }
         return State.EXPECT_IDENTIFIER;

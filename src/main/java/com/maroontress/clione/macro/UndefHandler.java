@@ -25,14 +25,14 @@ public final class UndefHandler implements DirectiveHandler {
     @Override
     public void apply(List<Token> directiveTokens, int directiveNameIndex)
             throws PreprocessException {
-        var maybeNamePair = Tokens.findSignificantToken(
+        var maybeNamePair = TokenKit.findSignificantToken(
                 directiveTokens, directiveNameIndex + 1);
         if (maybeNamePair.isEmpty()) {
             throw new MissingMacroNameException(directiveTokens.getLast());
         }
         var namePair = maybeNamePair.get();
         var macroNameToken = namePair.token();
-        if (macroNameToken.getType() != TokenType.IDENTIFIER) {
+        if (!macroNameToken.isType(TokenType.IDENTIFIER)) {
             throw new InvalidMacroNameException(macroNameToken);
         }
         keeper.undefineMacro(macroNameToken.getValue());

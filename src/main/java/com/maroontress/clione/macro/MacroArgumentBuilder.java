@@ -99,8 +99,8 @@ public abstract class MacroArgumentBuilder {
         argument list, {@code false} otherwise.
     */
     public final boolean addToken(Token token) {
-        if (token.getType() == TokenType.PUNCTUATOR
-                && token.getValue().equals(")")
+        if (token.isType(TokenType.PUNCTUATOR)
+                && token.isValue(")")
                 && parenLevel == 1) {
             --parenLevel;
             closeParen = token;
@@ -115,7 +115,8 @@ public abstract class MacroArgumentBuilder {
 
     private void addArgumentToken(Token token) {
         if (!skipsComma()
-                && token.getValue().equals(",")
+                && token.isType(TokenType.PUNCTUATOR)
+                && token.isValue(",")
                 && parenLevel == 1) {
             args.add(List.copyOf(currentArg));
             commaList.add(token);
@@ -127,7 +128,7 @@ public abstract class MacroArgumentBuilder {
     }
 
     private void updateParenLevel(Token token) {
-        if (token.getType() != TokenType.PUNCTUATOR) {
+        if (!token.isType(TokenType.PUNCTUATOR)) {
             return;
         }
         var levelDelta = parenLevelMap.get(token.getValue());
