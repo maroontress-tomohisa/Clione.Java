@@ -2,10 +2,12 @@ package com.maroontress.clione.macro;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import com.maroontress.clione.Preprocessor;
 import com.maroontress.clione.Token;
@@ -25,13 +27,13 @@ public final class FunctionLikeMacro implements Macro {
         Creates a new instance.
 
         @param name The name of the macro.
-        @param parameters The list of parameter names.
-        @param body The list of tokens that form the macro's body.
+        @param parameters The collection of parameter names.
+        @param body The collection of tokens that form the macro's body.
         @param behavior The macro behavior.
     */
     public FunctionLikeMacro(String name,
-                             List<String> parameters,
-                             List<Token> body,
+                             Collection<String> parameters,
+                             Collection<Token> body,
                              FunctionLikeMacroBehavior behavior) {
         this.name = name;
         this.parameters = List.copyOf(parameters);
@@ -117,29 +119,26 @@ public final class FunctionLikeMacro implements Macro {
         }
         var openParen = maybeOpenParen.get();
         var builder = behavior.createArgumentBuilder(this, openParen);
+        var supplier = newUmiExceptionSupplier(preprocessor, macroName);
         for (;;) {
             var maybeMacroToken = preprocessor.nextMacroToken();
             if (maybeMacroToken.isEmpty()) {
-                throw new UnterminatedMacroInvocationException(
-                    macroName, preprocessor.getExpandingChain());
+                throw supplier.get();
             }
             var macroToken = maybeMacroToken.get();
-            if (macroToken instanceof MacroEndMarker) {
-                throw new UnterminatedMacroInvocationException(
-                    macroName, preprocessor.getExpandingChain());
-            }
-            var maybeToken = macroToken.getToken();
-            if (!maybeToken.isPresent()) {
-                // ここには来ない。isPresent()がfalseになるのはMacroEndMarkerだけなので。
-                // ポリモーフィズムを使う。
-                continue;
-            }
-            var token = maybeToken.get();
-            if (builder.addToken(token)) {
+            if (macroToken.addToArguments(builder, supplier)) {
                 break;
             }
         }
         return Optional.of(builder.build());
+    }
+
+    private Supplier<PreprocessException> newUmiExceptionSupplier(
+            Preprocessor preprocessor, Token macroName) {
+        return () -> {
+            return new UnterminatedMacroInvocationException(
+                macroName, preprocessor.getExpandingChain());
+        };
     }
 
     /**
@@ -216,7 +215,7 @@ public final class FunctionLikeMacro implements Macro {
         var vaArgs = (expectedSize < actualSize)
             ? args.get(actualSize - 1)
             : new ArrayList<Token>();
-        mapping.put("__VA_ARGS__", vaArgs);
+        mapping.put(VaArgs.KEYWORD, vaArgs);
         return mapping;
     }
 }

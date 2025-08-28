@@ -1,6 +1,7 @@
 package com.maroontress.clione.macro;
 
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import com.maroontress.clione.Token;
 
@@ -36,5 +37,13 @@ public final class MacroEndMarker implements MacroToken {
     @Override
     public void expand(MacroExpansionVisitor visitor) {
         visitor.expandMacroEndMarker(this);
+    }
+
+    @Override
+    public boolean addToArguments(
+            MacroArgumentBuilder ignored,
+            Supplier<PreprocessException> exceptionSupplier)
+            throws PreprocessException {
+        throw exceptionSupplier.get();
     }
 }

@@ -6,7 +6,6 @@ import java.util.List;
 
 import com.maroontress.clione.Token;
 import com.maroontress.clione.TokenType;
-import com.maroontress.clione.macro.DefineHandler;
 import com.maroontress.clione.macro.FunctionLikeMacro;
 import com.maroontress.clione.macro.FunctionLikeMacroBehavior;
 import com.maroontress.clione.macro.InvalidConcatenationOperatorException;
@@ -21,7 +20,6 @@ import com.maroontress.clione.macro.TokenKit;
 public final class ParameterParser {
 
     private final String macroName;
-    private final Token directiveEnd;
     private final Deque<Token> queue;
     private final List<String> parameters = new ArrayList<>();
     private State parserState = State.INITIAL;
@@ -35,7 +33,6 @@ public final class ParameterParser {
     public ParameterParser(String macroName, Deque<Token> queue) {
         this.macroName = macroName;
         this.queue = queue;
-        this.directiveEnd = queue.getLast();
     }
 
     /**
@@ -57,52 +54,54 @@ public final class ParameterParser {
                 ? parserState.onCloseParen(token)
                 : parserState.nextState(token, parameters::add);
         }
+        TokenKit.removeLeadingWhitespaces(queue);
         var behavior = parserState.getFunctionLikeMacroBehavior();
-        var bodyList = new ArrayList<>(queue);
-        var body = TokenKit.findSignificantToken(bodyList, 0)
-                .map(p -> DefineHandler.getMacroBody(p.index(), bodyList))
-                .orElseGet(() -> List.<Token>of());
-        validateMacroBody(body, behavior);
-        return new FunctionLikeMacro(macroName, parameters, body, behavior);
+        validateStringizingOperators(queue, behavior);
+
+        queue.removeLast();
+        TokenKit.removeTrailingWhitespaces(queue);
+        validateConcatenatingOperators(queue);
+        behavior.validateVaArgKeyword(queue);
+
+        return new FunctionLikeMacro(macroName, parameters, queue, behavior);
     }
 
-    private void validateMacroBody(List<Token> body,
-            FunctionLikeMacroBehavior behavior) throws PreprocessException {
-        if (!body.isEmpty()) {
-            var firstToken = body.getFirst();
-            if (TokenKit.isConcatenatingOperator(firstToken)) {
-                throw new InvalidConcatenationOperatorException(
-                        firstToken, true);
-            }
-            var lastToken = body.getLast();
-            if (TokenKit.isConcatenatingOperator(lastToken)) {
-                throw new InvalidConcatenationOperatorException(
-                        lastToken, false);
-            }
+    private void validateConcatenatingOperators(Deque<Token> body)
+            throws PreprocessException {
+        if (body.isEmpty()) {
+            return;
         }
-        validateStringizingOperators(body, behavior);
-        behavior.validateVaArgKeyword(body);
+        var first = body.getFirst();
+        if (TokenKit.isConcatenatingOperator(first)) {
+            throw new InvalidConcatenationOperatorException(first, true);
+        }
+        var last = body.getLast();
+        if (TokenKit.isConcatenatingOperator(last)) {
+            throw new InvalidConcatenationOperatorException(last, false);
+        }
     }
 
-    private void validateStringizingOperators(List<Token> body,
+    private void validateStringizingOperators(Deque<Token> body,
             FunctionLikeMacroBehavior behavior) throws PreprocessException {
+        var directiveEnd = body.getLast();
         var validator = behavior.newStringizingOperandValidator(parameters);
-        for (var i = 0; i < body.size(); ++i) {
-            var token = body.get(i);
-            if (!TokenKit.isStringizingOperator(token)) {
+        var iter = body.iterator();
+        while (iter.hasNext()) {
+            if (!TokenKit.isStringizingOperator(iter.next())) {
                 continue;
             }
-            var nextTokenIndex = i + 1;
-            while (nextTokenIndex < body.size()
-                    && TokenKit.isDelimiterOrComment(body.get(nextTokenIndex))) {
-                ++nextTokenIndex;
-            }
-            if (nextTokenIndex >= body.size()) {
-                throw new InvalidStringizingOperatorException(directiveEnd);
-            }
-            var nextToken = body.get(nextTokenIndex);
-            if (!validator.test(nextToken)) {
-                throw new InvalidStringizingOperatorException(nextToken);
+            for (;;) {
+                if (!iter.hasNext()) {
+                    throw new InvalidStringizingOperatorException(directiveEnd);
+                }
+                var token = iter.next();
+                if (TokenKit.isDelimiterOrComment(token)) {
+                    continue;
+                }
+                if (validator.test(token)) {
+                    break;
+                }
+                throw new InvalidStringizingOperatorException(token);
             }
         }
     }

@@ -1,18 +1,54 @@
 package com.maroontress.clione.macro;
 
+import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
 
 import com.maroontress.clione.Token;
 import com.maroontress.clione.TokenType;
 
-// TokenBuilder, SourceCharsを使わないように作り直す（stringize()をclioneに移す）
 /**
     The utility class for operations on token sequence.
 */
 public final class TokenKit {
 
     private TokenKit() {
+    }
+
+    /**
+        Removes leading tokens from the given deque while the first token is
+        a delimiter or a comment.
+
+        <p>This method modifies the provided deque in-place. It repeatedly
+        examines the token at the front ({@link Deque#peekFirst}) and removes
+        it ({@link Deque#removeFirst}) as long as the token is a delimiter or
+        a comment as determined by {@link #isDelimiterOrComment(Token)}.</p>
+
+        @param queue the deque of tokens to trim.
+    */
+    public static void removeLeadingWhitespaces(Deque<Token> queue) {
+        while (!queue.isEmpty()
+                && isDelimiterOrComment(queue.peekFirst())) {
+            queue.removeFirst();
+        }
+    }
+
+    /**
+        Removes trailing tokens from the given deque while the last token is
+        a delimiter or a comment.
+
+        <p>This method modifies the provided deque in-place. It repeatedly
+        examines the token at the end ({@link Deque#peekLast}) and removes
+        it ({@link Deque#removeLast}) as long as the token is a delimiter or
+        a comment as determined by {@link #isDelimiterOrComment(Token)}.</p>
+
+        @param queue the deque of tokens to trim.
+    */
+    public static void removeTrailingWhitespaces(Deque<Token> queue) {
+        while (!queue.isEmpty()
+                && isDelimiterOrComment(queue.peekLast())) {
+            queue.removeLast();
+        }
     }
 
     /**

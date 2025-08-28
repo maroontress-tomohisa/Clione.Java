@@ -1,6 +1,7 @@
 package com.maroontress.clione.macro;
 
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import com.maroontress.clione.Token;
 
@@ -53,5 +54,12 @@ public abstract class AbstractWrappedToken implements WrappedToken {
     public final void expand(MacroExpansionVisitor visitor)
             throws PreprocessException {
         visitor.expandWrappedToken(this);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public boolean addToArguments(MacroArgumentBuilder builder,
+            Supplier<PreprocessException> ignored) {
+        return builder.addToken(unwrap());
     }
 }

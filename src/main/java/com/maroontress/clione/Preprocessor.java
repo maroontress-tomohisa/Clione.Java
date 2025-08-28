@@ -2,7 +2,7 @@ package com.maroontress.clione;
 
 import com.maroontress.clione.macro.MacroExpansionVisitor;
 import com.maroontress.clione.macro.MacroKeeper;
-import com.maroontress.clione.macro.MacroKeywords;
+import com.maroontress.clione.macro.VaArgs;
 import com.maroontress.clione.macro.DirectiveHandler;
 import com.maroontress.clione.macro.FunctionLikeMacro;
 import com.maroontress.clione.macro.InvalidPreprocessingDirectiveException;
@@ -260,8 +260,8 @@ public final class Preprocessor implements LexicalParser {
             Map<String, List<Token>> mapping,
             List<WrappedToken> substituted) throws PreprocessException {
         var tokenValue = token.getValue();
-        if (tokenValue.equals(MacroKeywords.VA_ARGS)) {
-            var vaArgs = mapping.get(MacroKeywords.VA_ARGS);
+        if (tokenValue.equals(VaArgs.KEYWORD)) {
+            var vaArgs = mapping.get(VaArgs.KEYWORD);
             if (vaArgs != null) {
                 vaArgs.forEach(
                     t -> substituted.add(new ParameterOriginatedToken(t)));

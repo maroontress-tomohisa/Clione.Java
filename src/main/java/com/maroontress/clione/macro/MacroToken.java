@@ -1,6 +1,7 @@
 package com.maroontress.clione.macro;
 
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import com.maroontress.clione.Token;
 
@@ -30,4 +31,8 @@ public interface MacroToken {
         @throws PreprocessException If an error occurs during expansion.
     */
     void expand(MacroExpansionVisitor visitor) throws PreprocessException;
+
+    boolean addToArguments(MacroArgumentBuilder builder,
+            Supplier<PreprocessException> exceptionSupplier)
+            throws PreprocessException;
 }

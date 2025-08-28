@@ -1,5 +1,6 @@
 package com.maroontress.clione.macro;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,9 +19,9 @@ public final class ObjectLikeMacro implements Macro {
         Creates a new instance.
 
         @param name The name of the macro.
-        @param body The list of tokens that form the macro's body.
+        @param body The collection of tokens that form the macro's body.
     */
-    public ObjectLikeMacro(String name, List<Token> body) {
+    public ObjectLikeMacro(String name, Collection<Token> body) {
         this.name = name;
         this.body = List.copyOf(body);
     }

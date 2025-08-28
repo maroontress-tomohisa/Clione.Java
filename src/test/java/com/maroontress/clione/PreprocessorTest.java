@@ -97,6 +97,23 @@ public final class PreprocessorTest {
     }
 
     @Test
+    public void simpleEmptyMacro() {
+        var s = """
+            #define FOO
+            FOO
+            """;
+        var defineFoo = List.of(
+                pair("define", TokenType.DIRECTIVE_NAME),
+                pair(" ", TokenType.DELIMITER),
+                pair("FOO", TokenType.IDENTIFIER),
+                pair("\n", TokenType.DIRECTIVE_END));
+        var list = List.of(
+                pair("#", TokenType.DIRECTIVE, defineFoo),
+                pair("\n", TokenType.DELIMITER));
+        test(s, list);
+    }
+
+    @Test
     public void functionLikeMacroArgumentNotExpanded() {
         var s = """
             #define FOO(x) (x)

@@ -36,7 +36,7 @@ public final class StringizingOperators {
     public static boolean variadicOperandValidator(
             Token token, List<String> parameters) {
         return newOperandValidator(
-                token, parameters, s -> s.equals(MacroKeywords.VA_ARGS));
+                token, parameters, s -> s.equals(VaArgs.KEYWORD));
     }
 
     private static boolean newOperandValidator(

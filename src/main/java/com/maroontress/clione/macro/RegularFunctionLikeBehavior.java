@@ -1,5 +1,6 @@
 package com.maroontress.clione.macro;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiPredicate;
@@ -39,8 +40,8 @@ public final class RegularFunctionLikeBehavior
     }
 
     @Override
-    public void validateVaArgKeyword(List<Token> body)
+    public void validateVaArgKeyword(Collection<Token> body)
             throws PreprocessException {
-        DefineHandler.validateVaArgKeyword(body);
+        VaArgs.validateBody(body);
     }
 }

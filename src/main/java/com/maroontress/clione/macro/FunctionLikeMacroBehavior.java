@@ -1,5 +1,6 @@
 package com.maroontress.clione.macro;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiPredicate;
@@ -70,13 +71,13 @@ public interface FunctionLikeMacroBehavior {
     }
 
     /**
-        Validates whether the `__VA_ARGS__` keyword is used correctly.
+        Validates whether the {@code __VA_ARGS__} keyword is used correctly.
 
         @param body The macro body.
-        @throws PreprocessException If the `__VA_ARGS__` keyword is used
-        incorrectly.
+        @throws PreprocessException If the {@code __VA_ARGS__} keyword is used
+            incorrectly.
     */
-    default void validateVaArgKeyword(List<Token> body)
+    default void validateVaArgKeyword(Collection<Token> body)
             throws PreprocessException {
         // Do nothing
     }

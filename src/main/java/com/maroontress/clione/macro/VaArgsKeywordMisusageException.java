@@ -3,8 +3,8 @@ package com.maroontress.clione.macro;
 import com.maroontress.clione.Token;
 
 /**
-    Thrown to indicate that '__VA_ARGS__' appears in a location other than
-    the replacement list of a variadic macro.
+    Thrown to indicate that {@code __VA_ARGS__} appears in a location other
+    than the replacement list of a variadic macro.
 */
 public final class VaArgsKeywordMisusageException
         extends PreprocessException {
@@ -18,8 +18,8 @@ public final class VaArgsKeywordMisusageException
     */
     public VaArgsKeywordMisusageException(Token causeToken) {
         super(String.format(
-                "%s: error: __VA_ARGS__ can only appear in the expansion of "
-                        + "a C99 variadic macro",
-                causeToken.getSpan().getStart()), causeToken);
+                "%s: error: %s can only appear in the expansion of a C99 "
+                        + "variadic macro",
+                causeToken.getSpan().getStart(), VaArgs.KEYWORD), causeToken);
     }
 }
