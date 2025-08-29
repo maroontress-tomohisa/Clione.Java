@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-import com.maroontress.clione.Preprocessor;
 import com.maroontress.clione.Token;
 import com.maroontress.clione.TokenType;
 
@@ -30,13 +29,12 @@ public interface FunctionLikeMacroBehavior {
 
         @param macro The macro to be expanded.
         @param args The arguments of the macro invocation.
-        @param preprocessor The preprocessor.
         @return The substitution mapping.
         @throws PreprocessException If an error occurs during preprocessing.
     */
     Map<String, List<Token>> getSubstitutionMapping(
             FunctionLikeMacro macro, MacroArgument args,
-            Preprocessor preprocessor) throws PreprocessException;
+            MacroKeeper keeper) throws PreprocessException;
 
     /**
         Creates a new macro argument builder.

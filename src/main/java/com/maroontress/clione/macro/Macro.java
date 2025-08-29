@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
-import com.maroontress.clione.Preprocessor;
 import com.maroontress.clione.Token;
 
 /**
@@ -29,12 +28,10 @@ public interface Macro {
     /**
         Applies the macro expansion.
 
-        @param preprocessor The preprocessor instance.
         @param token The token that triggered the macro expansion.
         @return The next token to be processed, or an empty optional if no
             token is available.
         @throws IOException if an I/O error occurs.
     */
-    Optional<Token> apply(Preprocessor preprocessor, Token token)
-            throws IOException;
+    Optional<Token> apply(Foo foo, Token token) throws IOException;
 }

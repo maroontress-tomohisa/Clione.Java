@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiPredicate;
 
-import com.maroontress.clione.Preprocessor;
 import com.maroontress.clione.Token;
 
 /**
@@ -22,9 +21,9 @@ public final class VariadicFunctionLikeBehavior
 
     @Override
     public Map<String, List<Token>> getSubstitutionMapping(
-            FunctionLikeMacro macro, MacroArgument args,
-            Preprocessor preprocessor) throws PreprocessException {
-        return macro.getVariadicSubstitutionMapping(args, preprocessor);
+            FunctionLikeMacro macro, MacroArgument args, MacroKeeper keeper)
+            throws PreprocessException {
+        return macro.getVariadicSubstitutionMapping(args, keeper);
     }
 
     @Override

@@ -51,19 +51,6 @@ public final class MacroKeeper {
         expandingChain.put(name, token);
     }
 
-    // /**
-    //     Checks if a macro is currently expanding.
-    //
-    //     @param name The name of the macro.
-    //     @return {@code true} if the macro is expanding,
-    //         otherwise {@code false}.
-    // */
-    // public boolean isExpanding(String name) {
-    //     return expandingChain.containsKey(name);
-    // }
-    //
-    // getMacro(String)で調べてるから不要になりました...
-
     /**
         Marks the end of a macro's expansion.
 

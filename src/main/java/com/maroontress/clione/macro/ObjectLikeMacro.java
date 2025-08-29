@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-import com.maroontress.clione.Preprocessor;
 import com.maroontress.clione.Token;
 
 /**
@@ -40,8 +39,7 @@ public final class ObjectLikeMacro implements Macro {
 
     /** {@inheritDoc} */
     @Override
-    public Optional<Token> apply(Preprocessor preprocessor, Token token)
-            throws PreprocessException {
-        return preprocessor.expandObjectBasedMacro(this, token);
+    public Optional<Token> apply(Foo foo, Token token) throws PreprocessException {
+        return foo.expand(this, token, this::body);
     }
 }

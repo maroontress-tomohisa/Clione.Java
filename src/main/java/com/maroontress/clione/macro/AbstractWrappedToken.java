@@ -1,6 +1,5 @@
 package com.maroontress.clione.macro;
 
-import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.maroontress.clione.Token;
@@ -29,18 +28,6 @@ public abstract class AbstractWrappedToken implements WrappedToken {
 
     /** {@inheritDoc} */
     @Override
-    public final Optional<Token> getToken() {
-        return Optional.of(token);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public final Optional<String> getMacroEndName() {
-        return Optional.empty();
-    }
-
-    /** {@inheritDoc} */
-    @Override
     public final Token unwrap() {
         return token;
     }
@@ -51,15 +38,13 @@ public abstract class AbstractWrappedToken implements WrappedToken {
 
     /** {@inheritDoc} */
     @Override
-    public final void expand(MacroExpansionVisitor visitor)
-            throws PreprocessException {
-        visitor.expandWrappedToken(this);
-    }
-
-    /** {@inheritDoc} */
-    @Override
     public boolean addToArguments(MacroArgumentBuilder builder,
             Supplier<PreprocessException> ignored) {
         return builder.addToken(unwrap());
+    }
+
+    @Override
+    public <T> T apply(MacroTokenVisitor<T> visitor) {
+        return visitor.handleWrappedToken(this);
     }
 }

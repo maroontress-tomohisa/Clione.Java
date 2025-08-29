@@ -1,9 +1,6 @@
 package com.maroontress.clione.macro;
 
-import java.util.Optional;
 import java.util.function.Supplier;
-
-import com.maroontress.clione.Token;
 
 /**
     A marker to signal the end of a macro expansion.
@@ -21,22 +18,8 @@ public final class MacroEndMarker implements MacroToken {
         this.name = name;
     }
 
-    /** {@inheritDoc} */
-    @Override
-    public Optional<Token> getToken() {
-        return Optional.empty();
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public Optional<String> getMacroEndName() {
-        return Optional.of(name);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public void expand(MacroExpansionVisitor visitor) {
-        visitor.expandMacroEndMarker(this);
+    public String getName() {
+        return name;
     }
 
     @Override
@@ -45,5 +28,10 @@ public final class MacroEndMarker implements MacroToken {
             Supplier<PreprocessException> exceptionSupplier)
             throws PreprocessException {
         throw exceptionSupplier.get();
+    }
+
+    @Override
+    public <T> T apply(MacroTokenVisitor<T> visitor) {
+        return visitor.handleMacroEndMarker(this);
     }
 }

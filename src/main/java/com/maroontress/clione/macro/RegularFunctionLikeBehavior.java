@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiPredicate;
 
-import com.maroontress.clione.Preprocessor;
 import com.maroontress.clione.Token;
 
 /**
@@ -23,9 +22,9 @@ public final class RegularFunctionLikeBehavior
 
     @Override
     public Map<String, List<Token>> getSubstitutionMapping(
-            FunctionLikeMacro macro, MacroArgument args,
-            Preprocessor preprocessor) throws PreprocessException {
-        return macro.getDefaultSubstitutionMapping(args, preprocessor);
+            FunctionLikeMacro macro, MacroArgument args, MacroKeeper keeper)
+            throws PreprocessException {
+        return macro.getDefaultSubstitutionMapping(args, keeper);
     }
 
     @Override
