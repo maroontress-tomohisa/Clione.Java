@@ -1892,4 +1892,114 @@ public final class PreprocessorTest {
                 pair("\n", TokenType.DELIMITER));
         test(s, list);
     }
+
+    @Test
+    public void stringizingWithRecursiveMacro() {
+        var s = """
+            #define STR(x) #x
+            #define BAR(x) STR(x)
+            #define FOO BAR
+            FOO (foo)
+            """;
+        var defineStr = List.of(
+                pair("define", TokenType.DIRECTIVE_NAME),
+                pair(" ", TokenType.DELIMITER),
+                pair("STR", TokenType.IDENTIFIER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("x", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("#", TokenType.OPERATOR),
+                pair("x", TokenType.IDENTIFIER),
+                pair("\n", TokenType.DIRECTIVE_END));
+        var defineBar = List.of(
+                pair("define", TokenType.DIRECTIVE_NAME),
+                pair(" ", TokenType.DELIMITER),
+                pair("BAR", TokenType.IDENTIFIER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("x", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("STR", TokenType.IDENTIFIER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("x", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair("\n", TokenType.DIRECTIVE_END));
+        var defineFoo = List.of(
+                pair("define", TokenType.DIRECTIVE_NAME),
+                pair(" ", TokenType.DELIMITER),
+                pair("FOO", TokenType.IDENTIFIER),
+                pair(" ", TokenType.DELIMITER),
+                pair("BAR", TokenType.IDENTIFIER),
+                pair("\n", TokenType.DIRECTIVE_END));
+        // An object-like macro used in a function-like macro invocation
+        // should be expanded.
+        // See N1570 6.10.3.1-1.
+        //
+        // In this case, 'FOO' should be expanded to 'BAR' and then
+        // the program should be 'BAR(foo)'.
+        // This is expanded to 'STR(foo)', and this is to '"foo"'.
+        var list = List.of(
+                pair("#", TokenType.DIRECTIVE, defineStr),
+                pair("#", TokenType.DIRECTIVE, defineBar),
+                pair("#", TokenType.DIRECTIVE, defineFoo),
+                pair("\"foo\"", TokenType.STRING),
+                pair("\n", TokenType.DELIMITER));
+        test(s, list);
+    }
+
+    @Test
+    public void stringizingWithRecursiveMacro2() {
+        var s = """
+            #define EMPTY
+            #define STR(x) #x
+            #define FOO(x,y) x y
+            FOO (STR,EMPTY) (foo)
+            """;
+        var defineEmpty = List.of(
+                pair("define", TokenType.DIRECTIVE_NAME),
+                pair(" ", TokenType.DELIMITER),
+                pair("EMPTY", TokenType.IDENTIFIER),
+                pair("\n", TokenType.DIRECTIVE_END));
+        var defineStr = List.of(
+                pair("define", TokenType.DIRECTIVE_NAME),
+                pair(" ", TokenType.DELIMITER),
+                pair("STR", TokenType.IDENTIFIER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("x", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("#", TokenType.OPERATOR),
+                pair("x", TokenType.IDENTIFIER),
+                pair("\n", TokenType.DIRECTIVE_END));
+        var defineFoo = List.of(
+                pair("define", TokenType.DIRECTIVE_NAME),
+                pair(" ", TokenType.DELIMITER),
+                pair("FOO", TokenType.IDENTIFIER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("x", TokenType.IDENTIFIER),
+                pair(",", TokenType.PUNCTUATOR),
+                pair("y", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("x", TokenType.IDENTIFIER),
+                pair(" ", TokenType.DELIMITER),
+                pair("y", TokenType.IDENTIFIER),
+                pair("\n", TokenType.DIRECTIVE_END));
+        // A function-like macro can be expanded to another
+        // function-like macro.
+        //
+        // In this case, 'FOO(STR,EMPTY)' should be expanded to 'STR EMPTY'.
+        // Then, the program should be 'STR EMPTY (foo)'.
+        // Because there is a macro name 'STR' and a placemarker 'EMPTY',
+        // 'STR' and '(foo)' are expanded.
+        // This is expanded to '"foo"'.
+        var list = List.of(
+                pair("#", TokenType.DIRECTIVE, defineEmpty),
+                pair("#", TokenType.DIRECTIVE, defineStr),
+                pair("#", TokenType.DIRECTIVE, defineFoo),
+                pair("\"foo\"", TokenType.STRING),
+                pair("\n", TokenType.DELIMITER));
+        test(s, list);
+    }
 }
