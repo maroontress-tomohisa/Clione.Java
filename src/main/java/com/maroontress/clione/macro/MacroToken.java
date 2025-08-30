@@ -7,6 +7,13 @@ import java.util.function.Supplier;
 */
 public interface MacroToken {
 
+    /**
+        Applies the specified visitor.
+
+        @param <T> The type of a value to be returned
+        @param visitor The visitor
+        @return The result of visiting
+    */
     <T> T apply(MacroTokenVisitor<T> visitor);
 
     /**

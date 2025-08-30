@@ -11,11 +11,19 @@ import java.util.function.Predicate;
 import com.maroontress.clione.LexicalParser;
 import com.maroontress.clione.Token;
 
+/**
+    The token stream for macro expansion.
+*/
 public final class TokenReservoir {
 
     private final LexicalParser parser;
     private final Deque<MacroToken> tokenQueue = new ArrayDeque<>();
 
+    /**
+        Initializes the instance.
+
+        @param parser The lexical parser
+    */
     public TokenReservoir(LexicalParser parser) {
         this.parser = parser;
     }
@@ -41,6 +49,13 @@ public final class TokenReservoir {
         }
     }
 
+    /**
+        Expands the specified macro.
+
+        @param macro The macro
+        @param supplier The supplier of the macro body
+        @throws PreprocessException if it fails to preprocess
+    */
     public void expandMacro(Macro macro, BodySupplier supplier)
             throws PreprocessException {
         var name = macro.name();
@@ -51,6 +66,12 @@ public final class TokenReservoir {
         }
     }
 
+    /**
+        Looks ahead for a token that matches the specified predicate.
+
+        @param predicate The predicate
+        @return The first token that matches the predicate
+    */
     public Optional<Token> lookAhead(Predicate<Token> predicate) {
         var peeked = new ArrayList<MacroToken>();
 

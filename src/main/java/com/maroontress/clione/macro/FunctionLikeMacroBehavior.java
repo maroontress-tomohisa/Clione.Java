@@ -29,6 +29,7 @@ public interface FunctionLikeMacroBehavior {
 
         @param macro The macro to be expanded.
         @param args The arguments of the macro invocation.
+        @param keeper The macro keeper
         @return The substitution mapping.
         @throws PreprocessException If an error occurs during preprocessing.
     */

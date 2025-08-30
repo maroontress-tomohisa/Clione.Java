@@ -18,6 +18,11 @@ public final class MacroEndMarker implements MacroToken {
         this.name = name;
     }
 
+    /**
+        Returns the name of the macro.
+
+        @return The name of the macro
+    */
     public String getName() {
         return name;
     }

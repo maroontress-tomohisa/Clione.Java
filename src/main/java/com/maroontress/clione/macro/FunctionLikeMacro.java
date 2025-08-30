@@ -83,6 +83,7 @@ public final class FunctionLikeMacro implements Macro {
         arguments.
 
         @param args The macro arguments.
+        @param keeper The macro keeper
         @return A map from parameter names to token lists.
         @throws PreprocessException If the arguments are invalid.
     */
@@ -162,6 +163,7 @@ public final class FunctionLikeMacro implements Macro {
         arguments.
 
         @param args The list of macro arguments.
+        @param keeper The macro keeper
         @return The substitution mapping.
         @throws MacroArgumentException if the number of arguments is incorrect.
     */
@@ -190,6 +192,7 @@ public final class FunctionLikeMacro implements Macro {
         Creates a substitution mapping for a variadic macro invocation.
 
         @param args The macro arguments.
+        @param keeper The macro keeper
         @return A map from parameter names to token lists.
         @throws PreprocessException If the arguments are invalid.
     */
@@ -235,6 +238,7 @@ public final class FunctionLikeMacro implements Macro {
 
         @param token The token that triggered the macro expansion.
         @param args The list of macro arguments.
+        @param foo The facade of the macro expansion engine
         @return The list of tokens after substitution.
         @throws PreprocessException if an error occurs during preprocessing.
     */

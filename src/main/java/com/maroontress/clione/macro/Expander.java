@@ -24,6 +24,7 @@ public final class Expander {
     /**
         Constructs a new instance.
 
+        @param foo The facade of the macro expansion engine
         @param tokens The list of tokens to expand.
     */
     public Expander(Foo foo, List<WrappedToken> tokens) {
