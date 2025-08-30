@@ -5,7 +5,6 @@ import static org.hamcrest.Matchers.is;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -68,9 +67,8 @@ public final class Parsers {
         @param list The list of token consumers.
     */
     public static void test(String s, List<Consumer<Token>> list) {
-        var cpp = new Preprocessor(LexicalParser.of(new StringReader(s)));
-        var actualList = new ArrayList<Token>();
-        try {
+        test(s, cpp -> {
+            var actualList = new ArrayList<Token>();
             for (;;) {
                 var maybe = cpp.next();
                 if (!maybe.isPresent()) {
@@ -78,19 +76,11 @@ public final class Parsers {
                 }
                 actualList.add(maybe.get());
             }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-        test(s, parser -> {
-            for (var c : list) {
-                var maybeToken = parser.next();
-                assertThat("Expected a token, but found EOF.",
-                        maybeToken.isPresent(), is(true));
-                var token = maybeToken.get();
-                c.accept(token);
+            var size = actualList.size();
+            assertThat(size, is(list.size()));
+            for (var k = 0; k < size; ++k) {
+                list.get(k).accept(actualList.get(k));
             }
-            assertThat("Expected EOF, but found more tokens.",
-                    parser.next().isEmpty(), is(true));
         });
     }
 

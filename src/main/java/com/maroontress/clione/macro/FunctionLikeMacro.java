@@ -120,7 +120,7 @@ public final class FunctionLikeMacro implements Macro {
             return Optional.empty();
         }
         var openParen = maybeOpenParen.get();
-        var builder = behavior.createArgumentBuilder(this, openParen);
+        var builder = behavior.createArgumentBuilder(kit, this, openParen);
         for (;;) {
             var maybeMacroToken = reservoir.nextMacroToken();
             if (maybeMacroToken.isEmpty()) {
@@ -148,8 +148,9 @@ public final class FunctionLikeMacro implements Macro {
         @param openParen The opening parenthesis of the argument list.
         @return A new macro argument builder.
     */
-    public MacroArgumentBuilder newArgumentBuilder(Token openParen) {
-        return behavior.createArgumentBuilder(this, openParen);
+    public MacroArgumentBuilder newArgumentBuilder(
+            ParseKit kit, Token openParen) {
+        return behavior.createArgumentBuilder(kit, this, openParen);
     }
 
     /**

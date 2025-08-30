@@ -13,8 +13,9 @@ public final class VariadicMacroArgumentBuilder extends MacroArgumentBuilder {
         @param macro The macro for which the builder is created.
         @param openParen The opening parenthesis of the argument list.
     */
-    VariadicMacroArgumentBuilder(FunctionLikeMacro macro, Token openParen) {
-        super(macro, openParen);
+    VariadicMacroArgumentBuilder(
+            ParseKit kit, FunctionLikeMacro macro, Token openParen) {
+        super(kit, macro, openParen);
     }
 
     @Override

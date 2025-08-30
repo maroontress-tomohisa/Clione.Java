@@ -49,9 +49,8 @@ public final class Expander {
         Applies the expansion process.
 
         @return The list of expanded tokens.
-        @throws PreprocessException If an error occurs during expansion.
     */
-    public List<WrappedToken> apply() throws PreprocessException {
+    public List<WrappedToken> apply() {
         while (!workQueue.isEmpty()) {
             var macroToken = workQueue.removeFirst();
             macroToken.apply(new MacroTokenVisitor<Void>() {
@@ -127,7 +126,7 @@ public final class Expander {
         @param wrappedToken The wrapped token that triggered the expansion.
         @param macro The macro to expand.
     */
-    private void expandFunctionLikeMacro(
+    private <T> void expandFunctionLikeMacro(
             WrappedToken wrappedToken, FunctionLikeMacro macro) {
         var openParenOpt = lookAheadForParen(workQueue);
         if (openParenOpt.isEmpty()) {
@@ -144,10 +143,21 @@ public final class Expander {
                 break;
             }
         }
-        var builder = macro.newArgumentBuilder(openParen);
+        var builder = macro.newArgumentBuilder(kit, openParen);
         while (!workQueue.isEmpty()) {
             var next = workQueue.removeFirst();
-            var token = next.apply(NO_MACRO_END_MARKER);
+            var token = next.apply(new MacroTokenVisitor<WrappedToken>() {
+
+                @Override
+                public WrappedToken visit(MacroEndMarker marker) {
+                    throw new UnsupportedOperationException();
+                }
+
+                @Override
+                public WrappedToken visit(WrappedToken wrappedToken) {
+                    return wrappedToken;
+                }
+            });
             if (builder.addToken(token)) {
                 // Found closing paren
                 break;

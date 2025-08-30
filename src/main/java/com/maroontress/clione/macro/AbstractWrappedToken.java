@@ -40,7 +40,7 @@ public abstract class AbstractWrappedToken implements WrappedToken {
     @Override
     public boolean addToArguments(MacroArgumentBuilder builder,
             Supplier<PreprocessException> ignored) {
-        return builder.addToken(unwrap());
+        return builder.addToken(this);
     }
 
     @Override

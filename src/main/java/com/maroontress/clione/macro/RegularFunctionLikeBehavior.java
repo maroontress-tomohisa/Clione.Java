@@ -29,8 +29,8 @@ public final class RegularFunctionLikeBehavior
 
     @Override
     public MacroArgumentBuilder createArgumentBuilder(
-            FunctionLikeMacro macro, Token openParen) {
-        return new DefaultMacroArgumentBuilder(macro, openParen);
+            ParseKit kit, FunctionLikeMacro macro, Token openParen) {
+        return new DefaultMacroArgumentBuilder(kit, macro, openParen);
     }
 
     @Override

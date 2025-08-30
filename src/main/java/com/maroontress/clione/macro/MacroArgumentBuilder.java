@@ -14,10 +14,11 @@ import com.maroontress.clione.TokenType;
 public abstract class MacroArgumentBuilder {
 
     private static Map<String, Integer> parenLevelMap = newParenLevelMap();
+    private final ParseKit kit;
     private final FunctionLikeMacro macro;
     private final List<List<Token>> args = new ArrayList<>();
     private final List<Token> commaList = new ArrayList<>();
-    private final List<Token> currentArg = new ArrayList<>();
+    private final List<WrappedToken> currentArg = new ArrayList<>();
     private final Token openParen;
     private Token closeParen;
     private int parenLevel = 1;
@@ -28,7 +29,9 @@ public abstract class MacroArgumentBuilder {
         @param macro The macro for which the builder is created.
         @param openParen The opening parenthesis of the argument list.
     */
-    public MacroArgumentBuilder(FunctionLikeMacro macro, Token openParen) {
+    public MacroArgumentBuilder(
+            ParseKit kit, FunctionLikeMacro macro, Token openParen) {
+        this.kit = kit;
         this.macro = macro;
         this.openParen = openParen;
     }
@@ -94,37 +97,58 @@ public abstract class MacroArgumentBuilder {
     /**
         Adds a token to the argument list.
 
-        @param token The token to be added.
         @return {@code true} if the token is the closing parenthesis of the
         argument list, {@code false} otherwise.
     */
-    public final boolean addToken(Token token) {
+    public final boolean addToken(WrappedToken wrappedToken) {
+        var token = wrappedToken.unwrap();
         if (token.isType(TokenType.PUNCTUATOR)
                 && token.isValue(")")
                 && parenLevel == 1) {
             --parenLevel;
             closeParen = token;
             if (!args.isEmpty() || !currentArg.isEmpty()) {
-                args.add(List.copyOf(currentArg));
+                addArgument();
             }
             return true;
         }
-        addArgumentToken(token);
+        addArgumentToken(wrappedToken);
         return false;
     }
 
-    private void addArgumentToken(Token token) {
+    private void addArgumentToken(WrappedToken wrappedToken) {
+        var token = wrappedToken.unwrap();
         if (!skipsComma()
                 && token.isType(TokenType.PUNCTUATOR)
                 && token.isValue(",")
                 && parenLevel == 1) {
-            args.add(List.copyOf(currentArg));
+            addArgument();
             commaList.add(token);
             currentArg.clear();
             return;
         }
         updateParenLevel(token);
-        currentArg.add(token);
+        currentArg.add(wrappedToken);
+    }
+
+    private void addArgument() {
+        var wrappedTokenList = (currentArg.stream()
+                .filter(WrappedToken::isOriginatingFromParameter)
+                .map(WrappedToken::unwrap)
+                .filter(t -> t.isType(TokenType.IDENTIFIER))
+                .findAny()
+                .isPresent())
+            ? expandedArgument()
+            : currentArg;
+        var tokenList = wrappedTokenList.stream()
+                .map(w -> w.unwrap())
+                .toList();
+        args.add(tokenList);
+    }
+
+    private List<WrappedToken> expandedArgument() {
+        var expander = new Expander(kit, currentArg);
+        return expander.apply();
     }
 
     private void updateParenLevel(Token token) {

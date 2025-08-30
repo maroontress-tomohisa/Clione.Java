@@ -33,7 +33,7 @@ public final class VariadicFunctionLikeBehavior
 
     @Override
     public MacroArgumentBuilder createArgumentBuilder(
-            FunctionLikeMacro macro, Token openParen) {
-        return new VariadicMacroArgumentBuilder(macro, openParen);
+            ParseKit kit, FunctionLikeMacro macro, Token openParen) {
+        return new VariadicMacroArgumentBuilder(kit, macro, openParen);
     }
 }

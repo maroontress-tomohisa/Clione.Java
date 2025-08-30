@@ -1894,7 +1894,7 @@ public final class PreprocessorTest {
     }
 
     @Test
-    public void stringizingWithRecursiveMacro() {
+    public void expansionResultToBeObjectLikeMacroName() {
         var s = """
             #define STR(x) #x
             #define BAR(x) STR(x)
@@ -1942,7 +1942,7 @@ public final class PreprocessorTest {
     }
 
     @Test
-    public void stringizingWithRecursiveMacro2() {
+    public void expansionResultToBeFunctionLikeMacroName() {
         var s = """
             #define EMPTY
             #define STR(x) #x
@@ -1984,6 +1984,71 @@ public final class PreprocessorTest {
                 pair("#", TokenType.DIRECTIVE, defineStr),
                 pair("#", TokenType.DIRECTIVE, defineFoo),
                 pair("\"foo\"", TokenType.STRING),
+                pair("\n", TokenType.DELIMITER));
+        test(s, list);
+    }
+
+    @Test
+    public void macroExpansion() {
+        var s = """
+            #define BAZ baz
+            #define STR(x) #x
+            #define BAR(x) x
+            #define FOO(x,y) BAR(x(y))
+            FOO(STR,BAZ)
+            """;
+        var defineBaz = List.of(
+                pair("define", TokenType.DIRECTIVE_NAME),
+                pair(" ", TokenType.DELIMITER),
+                pair("BAZ", TokenType.IDENTIFIER),
+                pair(" ", TokenType.DELIMITER),
+                pair("baz", TokenType.IDENTIFIER),
+                pair("\n", TokenType.DIRECTIVE_END));
+        var defineStr = List.of(
+                pair("define", TokenType.DIRECTIVE_NAME),
+                pair(" ", TokenType.DELIMITER),
+                pair("STR", TokenType.IDENTIFIER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("x", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("#", TokenType.OPERATOR),
+                pair("x", TokenType.IDENTIFIER),
+                pair("\n", TokenType.DIRECTIVE_END));
+        var defineBar = List.of(
+                pair("define", TokenType.DIRECTIVE_NAME),
+                pair(" ", TokenType.DELIMITER),
+                pair("BAR", TokenType.IDENTIFIER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("x", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("x", TokenType.IDENTIFIER),
+                pair("\n", TokenType.DIRECTIVE_END));
+        var defineFoo = List.of(
+                pair("define", TokenType.DIRECTIVE_NAME),
+                pair(" ", TokenType.DELIMITER),
+                pair("FOO", TokenType.IDENTIFIER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("x", TokenType.IDENTIFIER),
+                pair(",", TokenType.PUNCTUATOR),
+                pair("y", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(" ", TokenType.DELIMITER),
+                pair("BAR", TokenType.IDENTIFIER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("x", TokenType.IDENTIFIER),
+                pair("(", TokenType.PUNCTUATOR),
+                pair("y", TokenType.IDENTIFIER),
+                pair(")", TokenType.PUNCTUATOR),
+                pair(")", TokenType.PUNCTUATOR),
+                pair("\n", TokenType.DIRECTIVE_END));
+        var list = List.of(
+                pair("#", TokenType.DIRECTIVE, defineBaz),
+                pair("#", TokenType.DIRECTIVE, defineStr),
+                pair("#", TokenType.DIRECTIVE, defineBar),
+                pair("#", TokenType.DIRECTIVE, defineFoo),
+                pair("\"baz\"", TokenType.STRING),
                 pair("\n", TokenType.DELIMITER));
         test(s, list);
     }

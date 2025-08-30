@@ -45,7 +45,7 @@ public interface FunctionLikeMacroBehavior {
         @return A new macro argument builder.
     */
     MacroArgumentBuilder createArgumentBuilder(
-            FunctionLikeMacro macro, Token openParen);
+            ParseKit kit, FunctionLikeMacro macro, Token openParen);
 
     /**
         Returns the stringizing operand validator.

@@ -12,8 +12,9 @@ public final class DefaultMacroArgumentBuilder extends MacroArgumentBuilder {
         @param macro The macro for which the builder is created.
         @param openParen The opening parenthesis of the argument list.
     */
-    public DefaultMacroArgumentBuilder(FunctionLikeMacro macro, Token openParen) {
-        super(macro, openParen);
+    public DefaultMacroArgumentBuilder(
+            ParseKit kit, FunctionLikeMacro macro, Token openParen) {
+        super(kit, macro, openParen);
     }
 
     @Override
