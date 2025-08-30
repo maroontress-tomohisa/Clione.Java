@@ -1,12 +1,9 @@
 package com.maroontress.clione;
 
-import static com.maroontress.clione.Parsers.pair;
 import static com.maroontress.clione.Parsers.test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
@@ -200,30 +197,6 @@ public final class DefineErrorTest {
             assertThat(end.getLine(), is(1));
             assertThat(end.getColumn(), is(15));
         });
-    }
-
-    @Test
-    public void commentsInMacroParameterList() {
-        var s = """
-            #define FOO(/**/a/**/,/**/b/**/)
-            """;
-        var defineFoo = List.of(
-                pair("define", TokenType.DIRECTIVE_NAME),
-                pair(" ", TokenType.DELIMITER),
-                pair("FOO", TokenType.IDENTIFIER),
-                pair("(", TokenType.PUNCTUATOR),
-                pair("/**/", TokenType.COMMENT),
-                pair("a", TokenType.IDENTIFIER),
-                pair("/**/", TokenType.COMMENT),
-                pair(",", TokenType.PUNCTUATOR),
-                pair("/**/", TokenType.COMMENT),
-                pair("b", TokenType.IDENTIFIER),
-                pair("/**/", TokenType.COMMENT),
-                pair(")", TokenType.PUNCTUATOR),
-                pair("\n", TokenType.DIRECTIVE_END));
-        var list = List.of(
-                pair("#", TokenType.DIRECTIVE, defineFoo));
-        test(s, list);
     }
 
     @Test

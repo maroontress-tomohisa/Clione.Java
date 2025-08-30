@@ -81,14 +81,14 @@ public final class Preprocessor implements LexicalParser {
         }
     }
 
-    private Optional<Token> handleToken(Token token)
-            throws IOException {
+    private Optional<Token> handleToken(Token token) throws IOException {
         var type = token.getType();
         if (type == TokenType.IDENTIFIER) {
             return handleIdentifier(token);
         }
         if (type == TokenType.DIRECTIVE) {
             updateMacrosFromDirective(token);
+            return Optional.empty();
         }
         return Optional.of(token);
     }
