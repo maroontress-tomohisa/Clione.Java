@@ -28,6 +28,7 @@ public interface Macro {
     /**
         Applies the macro expansion.
 
+        @param kit The parse kit.
         @param token The token that triggered the macro expansion.
         @return The next token to be processed, or an empty optional if no
             token is available.
@@ -35,12 +36,30 @@ public interface Macro {
     */
     Optional<Token> apply(ParseKit kit, Token token) throws IOException;
 
+    /**
+        Accepts the pasting visitor.
+
+        @param visitor The visitor.
+    */
     void paste(PastingVisitor visitor);
 
+    /**
+        Defines the visitor for the token pasting (##) operator.
+    */
     interface PastingVisitor {
 
+        /**
+            Visits the object-like macro.
+
+            @param macro The macro.
+        */
         void paste(ObjectLikeMacro macro);
 
+        /**
+            Visits the function-like macro.
+
+            @param macro The macro.
+        */
         void paste(FunctionLikeMacro macro);
     }
 }

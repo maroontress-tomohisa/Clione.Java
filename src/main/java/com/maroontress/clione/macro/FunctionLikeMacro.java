@@ -232,6 +232,7 @@ public final class FunctionLikeMacro implements Macro {
 
         @param token The token that triggered the macro expansion.
         @param args The list of macro arguments.
+        @param kit The parse kit.
         @return The list of tokens after substitution.
     */
     public List<Token> substitute(Token token, MacroArgument args, ParseKit kit) {
