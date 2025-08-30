@@ -45,6 +45,28 @@ public final class DefineErrorTest {
     }
 
     @Test
+    public void vaArgsAsParameter() {
+        var s = """
+            #define FOO(__VA_ARGS__)
+            """;
+        var m = """
+            L1:13: error: __VA_ARGS__ can only appear in the expansion of a C99 variadic macro""";
+        test(s, parser -> {
+            var e = assertThrows(VaArgsKeywordMisusageException.class, parser::next);
+            assertThat(e.getMessage(), is(m));
+            var token = e.getCauseToken();
+            assertThat(token.getValue(), is("__VA_ARGS__"));
+            var span = token.getSpan();
+            var start = span.getStart();
+            var end = span.getEnd();
+            assertThat(start.getLine(), is(1));
+            assertThat(start.getColumn(), is(13));
+            assertThat(end.getLine(), is(1));
+            assertThat(end.getColumn(), is(23));
+        });
+    }
+
+    @Test
     public void missingWhitespaceAfterMacroName() {
         var s = """
             #define FOO-1

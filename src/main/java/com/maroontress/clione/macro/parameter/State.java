@@ -7,6 +7,8 @@ import com.maroontress.clione.TokenType;
 import com.maroontress.clione.macro.FunctionLikeMacroBehavior;
 import com.maroontress.clione.macro.PreprocessException;
 import com.maroontress.clione.macro.TokenKit;
+import com.maroontress.clione.macro.VaArgs;
+import com.maroontress.clione.macro.VaArgsKeywordMisusageException;
 
 /**
     The state of the function-like macro parameter parser.
@@ -96,6 +98,9 @@ public interface State {
             throw TokenKit.isComma(token)
                 ? new MissingMacroParameterException(token)
                 : new InvalidMacroParameterTokenException(token);
+        }
+        if (token.isValue(VaArgs.KEYWORD)) {
+            throw new VaArgsKeywordMisusageException(token);
         }
         addParameter.accept(token.getValue());
         return State.EXPECT_COMMA_OR_PAREN;
