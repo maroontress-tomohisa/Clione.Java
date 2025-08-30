@@ -2,14 +2,10 @@ package com.maroontress.clione;
 
 import com.maroontress.clione.macro.MacroKeeper;
 import com.maroontress.clione.macro.MacroTokenVisitor;
-import com.maroontress.clione.macro.BodySupplier;
 import com.maroontress.clione.macro.DirectiveHandler;
-import com.maroontress.clione.macro.Foo;
+import com.maroontress.clione.macro.ParseKit;
 import com.maroontress.clione.macro.InvalidPreprocessingDirectiveException;
-import com.maroontress.clione.macro.InvalidPreprocessingTokenException;
-import com.maroontress.clione.macro.Macro;
 import com.maroontress.clione.macro.MacroEndMarker;
-import com.maroontress.clione.macro.PreprocessException;
 import com.maroontress.clione.macro.TokenKit;
 import com.maroontress.clione.macro.TokenReservoir;
 import com.maroontress.clione.macro.WrappedToken;
@@ -34,7 +30,8 @@ public final class Preprocessor implements LexicalParser {
     private final MacroKeeper keeper = new MacroKeeper();
     private final Map<String, DirectiveHandler> handlerMap;
     private final TokenReservoir reservoir;
-    private final Foo foo;
+    private final ParseKit kit;
+    private final MacroTokenVisitor<Optional<Token>> tokenVisiror;
 
     /**
         Creates a new instance.
@@ -45,37 +42,8 @@ public final class Preprocessor implements LexicalParser {
         this.parser = parser;
         this.reservoir = new TokenReservoir(parser);
         this.handlerMap = DirectiveHandler.newMap(keeper);
-        this.foo = new Foo() {
-
-            @Override
-            public MacroKeeper getKeeper() {
-                return keeper;
-            }
-
-            @Override
-            public TokenReservoir getReservoir() {
-                return reservoir;
-            }
-
-            @Override
-            public Optional<Token> expand(Macro macro, Token token, BodySupplier supplier)
-                    throws PreprocessException {
-                keeper.startExpansion(macro.name(), token);
-                reservoir.expandMacro(macro, supplier);
-                return Optional.empty();
-            }
-
-            @Override
-            public Token concatenate(Token left, Token right) throws PreprocessException {
-                var token = Tokens.concatenate(left, right, getReservedWords());
-                if (token.isType(TokenType.UNKNOWN)) {
-                    throw new InvalidPreprocessingTokenException(
-                        token.getValue(),
-                        keeper.getExpandingChain());
-                }
-                return token;
-            }
-        };
+        this.kit = new ParseKit(keeper, reservoir, parser.getReservedWords());
+        this.tokenVisiror = newVisitor(this);
     }
 
     @Override
@@ -102,25 +70,8 @@ public final class Preprocessor implements LexicalParser {
             }
 
             var macroToken = maybeMacroToken.get();
-            var visitor = new MacroTokenVisitor<Optional<Token>>() {
-
-                @Override
-                public Optional<Token> handleMacroEndMarker(MacroEndMarker marker) {
-                    handleEndMarker(marker.getName());
-                    return Optional.empty();
-                }
-
-                @Override
-                public Optional<Token> handleWrappedToken(WrappedToken wrappedToken) {
-                    try {
-                        return handleToken(wrappedToken.unwrap());
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
-                    }
-                }
-            };
             try {
-                var result = macroToken.apply(visitor);
+                var result = macroToken.apply(tokenVisiror);
                 if (result.isPresent()) {
                     return result;
                 }
@@ -199,7 +150,7 @@ public final class Preprocessor implements LexicalParser {
             return Optional.of(token);
         }
         var macro = maybeMacro.get();
-        return macro.apply(foo, token);
+        return macro.apply(kit, token);
     }
 
     /**
@@ -207,7 +158,28 @@ public final class Preprocessor implements LexicalParser {
 
         @param name The name of the macro.
     */
-    public void handleEndMarker(String name) {
+    private void handleEndMarker(String name) {
         keeper.endExpansion(name);
+    }
+
+    private static MacroTokenVisitor<Optional<Token>> newVisitor(
+            Preprocessor self) {
+        return new MacroTokenVisitor<Optional<Token>>() {
+
+            @Override
+            public Optional<Token> visit(MacroEndMarker marker) {
+                self.handleEndMarker(marker.getName());
+                return Optional.empty();
+            }
+
+            @Override
+            public Optional<Token> visit(WrappedToken wrappedToken) {
+                try {
+                    return self.handleToken(wrappedToken.unwrap());
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            }
+        };
     }
 }

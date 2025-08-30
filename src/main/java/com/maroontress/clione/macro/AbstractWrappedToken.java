@@ -45,6 +45,6 @@ public abstract class AbstractWrappedToken implements WrappedToken {
 
     @Override
     public <T> T apply(MacroTokenVisitor<T> visitor) {
-        return visitor.handleWrappedToken(this);
+        return visitor.visit(this);
     }
 }

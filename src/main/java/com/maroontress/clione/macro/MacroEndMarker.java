@@ -37,6 +37,6 @@ public final class MacroEndMarker implements MacroToken {
 
     @Override
     public <T> T apply(MacroTokenVisitor<T> visitor) {
-        return visitor.handleMacroEndMarker(this);
+        return visitor.visit(this);
     }
 }

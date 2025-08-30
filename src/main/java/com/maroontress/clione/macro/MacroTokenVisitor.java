@@ -13,7 +13,7 @@ public interface MacroTokenVisitor<T> {
         @param marker The marker
         @return The result of handling
     */
-    T handleMacroEndMarker(MacroEndMarker marker);
+    T visit(MacroEndMarker marker);
 
     /**
         Handles the specified token.
@@ -21,5 +21,5 @@ public interface MacroTokenVisitor<T> {
         @param wrappedToken The token
         @return The result of handling
     */
-    T handleWrappedToken(WrappedToken wrappedToken);
+    T visit(WrappedToken wrappedToken);
 }

@@ -28,11 +28,19 @@ public interface Macro {
     /**
         Applies the macro expansion.
 
-        @param foo The facade of the macro expansion engine
         @param token The token that triggered the macro expansion.
         @return The next token to be processed, or an empty optional if no
             token is available.
         @throws IOException if an I/O error occurs.
     */
-    Optional<Token> apply(Foo foo, Token token) throws IOException;
+    Optional<Token> apply(ParseKit kit, Token token) throws IOException;
+
+    void paste(PastingVisitor visitor);
+
+    interface PastingVisitor {
+
+        void paste(ObjectLikeMacro macro);
+
+        void paste(FunctionLikeMacro macro);
+    }
 }

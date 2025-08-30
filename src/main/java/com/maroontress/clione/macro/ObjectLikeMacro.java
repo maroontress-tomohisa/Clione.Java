@@ -39,7 +39,12 @@ public final class ObjectLikeMacro implements Macro {
 
     /** {@inheritDoc} */
     @Override
-    public Optional<Token> apply(Foo foo, Token token) throws PreprocessException {
-        return foo.expand(this, token, this::body);
+    public Optional<Token> apply(ParseKit kit, Token token) throws PreprocessException {
+        return kit.expand(this, token, this::body);
+    }
+
+    @Override
+    public void paste(PastingVisitor visitor) {
+        visitor.paste(this);
     }
 }

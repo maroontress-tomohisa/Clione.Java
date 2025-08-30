@@ -3,10 +3,10 @@ package com.maroontress.clione.macro;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Deque;
+import java.util.List;
 import java.util.Optional;
-import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import com.maroontress.clione.LexicalParser;
 import com.maroontress.clione.Token;
@@ -54,10 +54,8 @@ public final class TokenReservoir {
 
         @param macro The macro
         @param supplier The supplier of the macro body
-        @throws PreprocessException if it fails to preprocess
     */
-    public void expandMacro(Macro macro, BodySupplier supplier)
-            throws PreprocessException {
+    public void expandMacro(Macro macro, Supplier<List<Token>> supplier) {
         var name = macro.name();
         tokenQueue.addFirst(new MacroEndMarker(name));
         var queue = new ArrayDeque<>(supplier.get());
@@ -67,52 +65,13 @@ public final class TokenReservoir {
     }
 
     /**
-        Looks ahead for a token that matches the specified predicate.
+        Puts back a list of macro tokens to the reservoir.
 
-        @param predicate The predicate
-        @return The first token that matches the predicate
+        @param list The list of macro tokens to put back.
     */
-    public Optional<Token> lookAhead(Predicate<Token> predicate) {
-        var peeked = new ArrayList<MacroToken>();
-
-        while (true) {
-            var nextOpt = nextMacroToken();
-            if (nextOpt.isEmpty()) {
-                // EOF, not found. Put stuff back.
-                for (int i = peeked.size() - 1; i >= 0; i--) {
-                    tokenQueue.addFirst(peeked.get(i));
-                }
-                return Optional.empty();
-            }
-
-            var next = nextOpt.get();
-            peeked.add(next);
-
-            var token = next.apply(new MacroTokenVisitor<Token>() {
-
-                @Override
-                public Token handleMacroEndMarker(MacroEndMarker marker) {
-                    return null;
-                }
-
-                @Override
-                public Token handleWrappedToken(WrappedToken wrappedToken) {
-                    return wrappedToken.unwrap();
-                }
-            });
-            if (token != null) {
-                if (TokenKit.isDelimiterOrComment(token)) {
-                    continue;
-                }
-                if (predicate.test(token)) {
-                    return Optional.of(token);
-                }
-            }
-
-            for (var k = peeked.size() - 1; k >= 0; --k) {
-                tokenQueue.addFirst(peeked.get(k));
-            }
-            return Optional.empty();
+    public void putBack(List<MacroToken> list) {
+        for (var i = list.size() - 1; i >= 0; --i) {
+            tokenQueue.addFirst(list.get(i));
         }
     }
 }

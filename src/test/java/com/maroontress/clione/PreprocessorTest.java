@@ -1932,13 +1932,6 @@ public final class PreprocessorTest {
                 pair(" ", TokenType.DELIMITER),
                 pair("BAR", TokenType.IDENTIFIER),
                 pair("\n", TokenType.DIRECTIVE_END));
-        // An object-like macro used in a function-like macro invocation
-        // should be expanded.
-        // See N1570 6.10.3.1-1.
-        //
-        // In this case, 'FOO' should be expanded to 'BAR' and then
-        // the program should be 'BAR(foo)'.
-        // This is expanded to 'STR(foo)', and this is to '"foo"'.
         var list = List.of(
                 pair("#", TokenType.DIRECTIVE, defineStr),
                 pair("#", TokenType.DIRECTIVE, defineBar),
@@ -1986,14 +1979,6 @@ public final class PreprocessorTest {
                 pair(" ", TokenType.DELIMITER),
                 pair("y", TokenType.IDENTIFIER),
                 pair("\n", TokenType.DIRECTIVE_END));
-        // A function-like macro can be expanded to another
-        // function-like macro.
-        //
-        // In this case, 'FOO(STR,EMPTY)' should be expanded to 'STR EMPTY'.
-        // Then, the program should be 'STR EMPTY (foo)'.
-        // Because there is a macro name 'STR' and a placemarker 'EMPTY',
-        // 'STR' and '(foo)' are expanded.
-        // This is expanded to '"foo"'.
         var list = List.of(
                 pair("#", TokenType.DIRECTIVE, defineEmpty),
                 pair("#", TokenType.DIRECTIVE, defineStr),

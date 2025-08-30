@@ -1,6 +1,5 @@
 package com.maroontress.clione.macro;
 
-import java.io.UncheckedIOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -16,7 +15,20 @@ import com.maroontress.clione.TokenType;
 */
 public final class Expander {
 
-    private final Foo foo;
+    private static final MacroTokenVisitor<Token> NO_MACRO_END_MARKER
+            = new MacroTokenVisitor<Token>() {
+                @Override
+                public Token visit(MacroEndMarker marker) {
+                    throw new UnsupportedOperationException();
+                }
+
+                @Override
+                public Token visit(WrappedToken wrappedToken) {
+                    return wrappedToken.unwrap();
+                }
+            };
+
+    private final ParseKit kit;
     private final MacroKeeper keeper;
     private final List<WrappedToken> result = new ArrayList<>();
     private final Deque<MacroToken> workQueue;
@@ -24,12 +36,12 @@ public final class Expander {
     /**
         Constructs a new instance.
 
-        @param foo The facade of the macro expansion engine
+        @param kit The parse kit.
         @param tokens The list of tokens to expand.
     */
-    public Expander(Foo foo, List<WrappedToken> tokens) {
-        this.foo = foo;
-        this.keeper = foo.getKeeper();
+    public Expander(ParseKit kit, List<WrappedToken> tokens) {
+        this.kit = kit;
+        this.keeper = kit.getKeeper();
         this.workQueue = new ArrayDeque<>(tokens);
     }
 
@@ -45,13 +57,13 @@ public final class Expander {
             macroToken.apply(new MacroTokenVisitor<Void>() {
 
                 @Override
-                public Void handleMacroEndMarker(MacroEndMarker marker) {
+                public Void visit(MacroEndMarker marker) {
                     expandMacroEndMarker(marker);
                     return null;
                 }
 
                 @Override
-                public Void handleWrappedToken(WrappedToken wrappedToken) {
+                public Void visit(WrappedToken wrappedToken) {
                     expandWrappedToken(wrappedToken);
                     return null;
                 }
@@ -78,11 +90,19 @@ public final class Expander {
             return;
         }
         var macro = maybeMacro.get();
-        if (macro instanceof FunctionLikeMacro) {
-            expandFunctionLikeMacro(wrappedToken, (FunctionLikeMacro) macro);
-        } else {
-            expandObjectLikeMacro(token, macro);
-        }
+        var visitor = new Macro.PastingVisitor() {
+
+            @Override
+            public void paste(ObjectLikeMacro macro) {
+                expandObjectLikeMacro(token, macro);
+            }
+
+            @Override
+            public void paste(FunctionLikeMacro macro) {
+                expandFunctionLikeMacro(wrappedToken, macro);
+            }
+        };
+        macro.paste(visitor);
     }
 
     /**
@@ -91,7 +111,7 @@ public final class Expander {
         @param token The token that triggered the expansion.
         @param macro The macro to expand.
     */
-    public void expandObjectLikeMacro(Token token, Macro macro) {
+    private void expandObjectLikeMacro(Token token, Macro macro) {
         var name = macro.name();
         keeper.startExpansion(name, token);
         workQueue.addFirst(new MacroEndMarker(name));
@@ -107,7 +127,7 @@ public final class Expander {
         @param wrappedToken The wrapped token that triggered the expansion.
         @param macro The macro to expand.
     */
-    public void expandFunctionLikeMacro(
+    private void expandFunctionLikeMacro(
             WrappedToken wrappedToken, FunctionLikeMacro macro) {
         var openParenOpt = lookAheadForParen(workQueue);
         if (openParenOpt.isEmpty()) {
@@ -119,17 +139,7 @@ public final class Expander {
         // The lookAheadForParen just peeks.
         while (!workQueue.isEmpty()) {
             var macroToken = workQueue.removeFirst();
-            var token = macroToken.apply(new MacroTokenVisitor<Token>() {
-                @Override
-                public Token handleMacroEndMarker(MacroEndMarker marker) {
-                    throw new UnsupportedOperationException();
-                }
-
-                @Override
-                public Token handleWrappedToken(WrappedToken wrappedToken) {
-                    return wrappedToken.unwrap();
-                }
-            });
+            var token = macroToken.apply(NO_MACRO_END_MARKER);
             if (token == openParen) {
                 break;
             }
@@ -137,18 +147,7 @@ public final class Expander {
         var builder = macro.newArgumentBuilder(openParen);
         while (!workQueue.isEmpty()) {
             var next = workQueue.removeFirst();
-            var token = next.apply(new MacroTokenVisitor<Token>() {
-
-                @Override
-                public Token handleMacroEndMarker(MacroEndMarker marker) {
-                    throw new UnsupportedOperationException();
-                }
-
-                @Override
-                public Token handleWrappedToken(WrappedToken wrappedToken) {
-                    return wrappedToken.unwrap();
-                }
-            });
+            var token = next.apply(NO_MACRO_END_MARKER);
             if (builder.addToken(token)) {
                 // Found closing paren
                 break;
@@ -157,16 +156,12 @@ public final class Expander {
         var name = macro.name();
         var token = wrappedToken.unwrap();
         var args = builder.build();
-        try {
-            var substituted = macro.substitute(token, args, foo);
-            keeper.startExpansion(name, token);
-            workQueue.addFirst(new MacroEndMarker(name));
-            for (var i = substituted.size() - 1; i >= 0; --i) {
-                workQueue.addFirst(
-                    new ParameterOriginatedToken(substituted.get(i)));
-            }
-        } catch (PreprocessException e) {
-            throw new UncheckedIOException(e);
+        var substituted = macro.substitute(token, args, kit);
+        keeper.startExpansion(name, token);
+        workQueue.addFirst(new MacroEndMarker(name));
+        for (var i = substituted.size() - 1; i >= 0; --i) {
+            workQueue.addFirst(
+                new ParameterOriginatedToken(substituted.get(i)));
         }
     }
 
@@ -175,18 +170,7 @@ public final class Expander {
         var iter = list.iterator();
         while (iter.hasNext()) {
             var macroToken = iter.next();
-            var token = macroToken.apply(new MacroTokenVisitor<Token>() {
-
-                @Override
-                public Token handleMacroEndMarker(MacroEndMarker marker) {
-                    throw new UnsupportedOperationException();
-                }
-
-                @Override
-                public Token handleWrappedToken(WrappedToken wrappedToken) {
-                    return wrappedToken.unwrap();
-                }
-            });
+            var token = macroToken.apply(NO_MACRO_END_MARKER);
             if (TokenKit.isDelimiterOrComment(token)) {
                 continue;
             }

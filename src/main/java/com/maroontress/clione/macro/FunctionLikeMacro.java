@@ -1,6 +1,7 @@
 package com.maroontress.clione.macro;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -56,17 +57,12 @@ public final class FunctionLikeMacro implements Macro {
 
     /** {@inheritDoc} */
     @Override
-    public Optional<Token> apply(Foo foo, Token token) throws IOException {
+    public Optional<Token> apply(ParseKit kit, Token token) throws IOException {
         var maybeArguments = parseArguments(
-                foo.getReservoir(),
-                token,
-                newUmiExceptionSupplier(foo.getKeeper(), token));
+                kit, token, newUmiExceptionSupplier(kit.getKeeper(), token));
         return !maybeArguments.isPresent()
                 ? Optional.of(token)
-                : foo.expand(
-                        this,
-                        token,
-                        () -> substitute(token, maybeArguments.get(), foo));
+                : expand(kit, token, maybeArguments.get());
     }
 
     /**
@@ -108,20 +104,18 @@ public final class FunctionLikeMacro implements Macro {
         return behavior.getSubstitutionMapping(this, args, keeper);
     }
 
+    private Optional<Token> expand(
+            ParseKit kit, Token token, MacroArgument args) {
+        return kit.expand(this, token, () -> substitute(token, args, kit));
+    }
+
     private Optional<MacroArgument> parseArguments(
-            TokenReservoir reservoir, Token macroName,
+            ParseKit kit, Token macroName,
             Supplier<PreprocessException> supplier)
             throws IOException {
-        var maybeOpenParen = reservoir.lookAhead(TokenKit::isOpenParenthesis);
-        /*
-            This code should be written as follows:
-
-            return maybeOpenParen.map(openParen -> {
-                ...
-            });
-
-            but nextMacroToken() throws an IOException.
-        */
+        var reservoir = kit.getReservoir();
+        var maybeOpenParen = kit.lookAhead(TokenKit::isOpenParenthesis);
+        // Use maybeOpenParen#map()
         if (!maybeOpenParen.isPresent()) {
             return Optional.empty();
         }
@@ -238,19 +232,20 @@ public final class FunctionLikeMacro implements Macro {
 
         @param token The token that triggered the macro expansion.
         @param args The list of macro arguments.
-        @param foo The facade of the macro expansion engine
         @return The list of tokens after substitution.
-        @throws PreprocessException if an error occurs during preprocessing.
     */
-    public List<Token> substitute(Token token, MacroArgument args, Foo foo)
-            throws PreprocessException {
-        var keeper = foo.getKeeper();
-        var mapping = getSubstitutionMapping(args, keeper);
-        var substituted = substituteParamsAndStringify(mapping);
-        var concatenated = concatenateTokens(substituted, foo);
-        return expandMarkedTokens(concatenated, foo).stream()
-                .map(WrappedToken::unwrap)
-                .collect(Collectors.toList());
+    public List<Token> substitute(Token token, MacroArgument args, ParseKit kit) {
+        var keeper = kit.getKeeper();
+        try {
+            var mapping = getSubstitutionMapping(args, keeper);
+            var substituted = substituteParamsAndStringify(mapping);
+            var concatenated = concatenateTokens(substituted, kit);
+            return expandMarkedTokens(concatenated, kit).stream()
+                    .map(WrappedToken::unwrap)
+                    .collect(Collectors.toList());
+        } catch (PreprocessException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private List<WrappedToken> substituteParamsAndStringify(
@@ -312,7 +307,7 @@ public final class FunctionLikeMacro implements Macro {
         value.forEach(t -> substituted.add(new ParameterOriginatedToken(t)));
     }
 
-    private List<WrappedToken> concatenateTokens(List<WrappedToken> tokens, Foo foo)
+    private List<WrappedToken> concatenateTokens(List<WrappedToken> tokens, ParseKit kit)
             throws PreprocessException {
         if (tokens.isEmpty()) {
             return tokens;
@@ -345,16 +340,16 @@ public final class FunctionLikeMacro implements Macro {
             }
             var left = maybeLeft.get();
             result.subList(left.index(), result.size()).clear();
-            var concatenated = foo.concatenate(left.token(), right.token());
+            var concatenated = kit.concatenate(left.token(), right.token());
             result.add(WrappedToken.of(concatenated));
             i = right.index() + 1;
         }
         return result;
     }
 
-    private List<WrappedToken> expandMarkedTokens(List<WrappedToken> tokens, Foo foo)
+    private List<WrappedToken> expandMarkedTokens(List<WrappedToken> tokens, ParseKit kit)
             throws PreprocessException {
-        var expander = new Expander(foo, tokens);
+        var expander = new Expander(kit, tokens);
         return expander.apply();
     }
 
@@ -379,5 +374,10 @@ public final class FunctionLikeMacro implements Macro {
             }
         }
         return Optional.empty();
+    }
+
+    @Override
+    public void paste(PastingVisitor visitor) {
+        visitor.paste(this);
     }
 }
