@@ -145,6 +145,7 @@ public final class FunctionLikeMacro implements Macro {
     /**
         Creates a new macro argument builder.
 
+        @param kit The parse kit.
         @param openParen The opening parenthesis of the argument list.
         @return A new macro argument builder.
     */

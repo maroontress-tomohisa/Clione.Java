@@ -26,6 +26,7 @@ public abstract class MacroArgumentBuilder {
     /**
         Constructs a new instance.
 
+        @param kit The parse kit.
         @param macro The macro for which the builder is created.
         @param openParen The opening parenthesis of the argument list.
     */
@@ -97,6 +98,7 @@ public abstract class MacroArgumentBuilder {
     /**
         Adds a token to the argument list.
 
+        @param wrappedToken The token to be added.
         @return {@code true} if the token is the closing parenthesis of the
         argument list, {@code false} otherwise.
     */

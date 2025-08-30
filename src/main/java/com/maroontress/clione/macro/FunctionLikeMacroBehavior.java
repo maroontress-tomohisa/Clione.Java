@@ -40,6 +40,7 @@ public interface FunctionLikeMacroBehavior {
     /**
         Creates a new macro argument builder.
 
+        @param kit The parse kit.
         @param macro The macro for which the builder is created.
         @param openParen The opening parenthesis of the argument list.
         @return A new macro argument builder.

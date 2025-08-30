@@ -126,7 +126,7 @@ public final class Expander {
         @param wrappedToken The wrapped token that triggered the expansion.
         @param macro The macro to expand.
     */
-    private <T> void expandFunctionLikeMacro(
+    private void expandFunctionLikeMacro(
             WrappedToken wrappedToken, FunctionLikeMacro macro) {
         var openParenOpt = lookAheadForParen(workQueue);
         if (openParenOpt.isEmpty()) {
